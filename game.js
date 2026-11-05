@@ -639,9 +639,12 @@ function animateRunner(dt, running) {
   const air = py > 0.02, sl = slideT > 0;
   const k = Math.min(1, dt * 18);
   if (player.mixer) {                                   // 3D Thai Student (Mixamo glTF)
-    const anim = state === 'dead' ? 'Death' : state === 'menu' ? 'Sitting' : air ? 'Jump' : sl ? 'Sitting' : 'Running';
-    player.play(anim, anim === 'Death' ? 0.05 : 0.08);
-    if (player.actions.Running) player.actions.Running.timeScale = 1.25 + speed * 0.032;
+    const anim = state === 'dead' ? 'Death' : state === 'menu' ? 'Sitting' : 'Running';
+    player.play(anim, anim === 'Death' ? 0.12 : 0.15);
+    if (player.actions.Running) {
+      const targetScale = air ? 0.28 : sl ? 0.18 : 1.35 + speed * 0.032;
+      player.actions.Running.timeScale += (targetScale - player.actions.Running.timeScale) * Math.min(1, dt * 14);
+    }
     player.mixer.update(dt);
     if (state === 'menu') {
       const bow = player.posePray(clock);
@@ -649,6 +652,7 @@ function animateRunner(dt, running) {
       player.group.position.set(0, 0, 0);
     } else {
       if (player.incense) player.incense.visible = false;
+      if (player.poseAction) player.poseAction(air, sl, dt);
       // In YXZ order: negative rotation.x reclines backward on its back (feet forward under the barrier!)
       const lean = sl ? -1.32 : state === 'play' && !air ? 0.12 : 0;
       player.group.rotation.x += (lean - player.group.rotation.x) * k;

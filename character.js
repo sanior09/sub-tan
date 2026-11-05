@@ -285,6 +285,22 @@ function makeRunner() {
     if (prev && prev !== a) prev.fadeOut(fade || 0.12);
     r.current = name;
   };
+  let airBlend = 0;
+  r.poseAction = (air, sl, dt) => {
+    const target = air ? 1 : 0;
+    airBlend += (target - airBlend) * Math.min(1, dt * 14);
+    if (airBlend < 0.005) return;
+    const b = r.bones;
+    if (b.lA && b.rA && b.lUL && b.rUL && b.lLL && b.rLL) {
+      // Smoothly lift arms & tuck knees in mid-air without snapping Hips or resetting the run cycle!
+      b.lA.rotation.z -= 0.55 * airBlend;
+      b.rA.rotation.z += 0.55 * airBlend;
+      b.lUL.rotation.x -= 0.35 * airBlend;
+      b.rUL.rotation.x -= 0.25 * airBlend;
+      b.lLL.rotation.x += 0.45 * airBlend;
+      b.rLL.rotation.x += 0.35 * airBlend;
+    }
+  };
   r.posePray = (t) => {
     const bow = (Math.sin(t * 4.5) + 1) * 0.5;                 // 0..1 rhythmic Wai bow forward
     incense.visible = true;
@@ -400,6 +416,8 @@ function makeRunner() {
     r.bones = {
       lS: getBone('LeftShoulder'), lA: getBone('LeftArm'), lF: getBone('LeftForeArm'),
       rS: getBone('RightShoulder'), rA: getBone('RightArm'), rF: getBone('RightForeArm'),
+      lUL: getBone('LeftUpLeg'), rUL: getBone('RightUpLeg'),
+      lLL: getBone('LeftLeg'), rLL: getBone('RightLeg'),
       spine: bSpine1, neck: bNeck
     };
 
