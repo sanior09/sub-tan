@@ -76,6 +76,7 @@ const C = window.TanChars;
 const player = C.makeRunner();        // generic cartoon robot (NOT Tan) — only the ghost wears Tan's face
 const playerRoot = new THREE.Group();
 player.group.scale.setScalar(0.92);
+player.group.rotation.order = 'YXZ';     // Y (turn) first, then X (pitch/bow forward in character's facing direction!)
 playerRoot.add(player.group);
 player.group.rotation.y = Math.PI;       // runs toward -Z, back to the main camera
 scene.add(playerRoot);
@@ -433,8 +434,8 @@ function animateRunner(dt, running) {
     if (player.actions.Running) player.actions.Running.timeScale = 0.9 + speed * 0.03;
     player.mixer.update(dt);
     if (state === 'menu') {
-      player.posePray();
-      player.group.rotation.set(0, Math.PI + 1.12, 0);  // sit still facing ศาลเจ้าพ่อตาล (no swaying)
+      const bow = player.posePray(clock);
+      player.group.rotation.set(0.08 + bow * 0.38, Math.PI + 1.12, 0);  // YXZ: bows straight forward toward ศาลเจ้าพ่อตาล!
     } else {
       if (player.incense) player.incense.visible = false;
       const lean = sl ? 0.35 : state === 'play' && !air ? -0.1 : 0;
