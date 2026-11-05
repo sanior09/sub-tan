@@ -288,11 +288,11 @@ function makeRunner() {
   r.posePray = (t) => {
     const bow = (Math.sin(t * 4.5) + 1) * 0.5;                 // 0..1 rhythmic Wai bow forward
     incense.visible = true;
-    // Pose the student's arms & waist in a real Thai Wai (พนมมือไหว้ธูปก้มหัว) while feet stay planted!
+    // Pose the cute little student's arms & waist in a Thai Wai (พนมมือไหว้ธูปก้มหัว)
     const b = r.bones;
     if (b.lS && b.lA && b.lF && b.rS && b.rA && b.rF) {
-      if (b.spine) b.spine.rotation.set(0.06 + bow * 0.24, 0, 0);
-      if (b.neck) b.neck.rotation.set(0.14 + bow * 0.20, 0, 0);
+      if (b.spine) b.spine.rotation.set(0.05 + bow * 0.20, 0, 0);
+      if (b.neck) b.neck.rotation.set(0.10 + bow * 0.18, 0, 0);
       b.lS.rotation.set(0, -0.35, 0);
       b.lA.rotation.set(0.30 + bow * 0.08, -1.05, -0.75);
       b.lF.rotation.set(0, -1.75, 0.65);
@@ -300,8 +300,8 @@ function makeRunner() {
       b.rA.rotation.set(0.30 + bow * 0.08, 1.05, 0.75);
       b.rF.rotation.set(0, 1.75, -0.65);
     }
-    incense.position.set(0, 1.44 - bow * 0.08, 0.38 + bow * 0.10);
-    incense.rotation.set(0.28 + bow * 0.32, 0, 0);
+    incense.position.set(0, 1.04 - bow * 0.06, 0.28 + bow * 0.08);
+    incense.rotation.set(0.28 + bow * 0.30, 0, 0);
     return bow;
   };
 
@@ -315,10 +315,10 @@ function makeRunner() {
       headEnd.getWorldPosition(pTop); model.getWorldPosition(pRoot);
       h = Math.max(0.5, pTop.y - pRoot.y);
     }
-    const k = 2.40 / h;                                         // 3D Thai student height
+    const k = 1.70 / h;                                         // Small, cute little kid height (~1.70m)!
     model.scale.setScalar(k); model.position.y = 0;
 
-    // Strip robot armor/joints and keep only the realistic 5-fingered human hands
+    // Strip robot armor/joints and keep only the 5-fingered human hands
     model.traverse((o) => {
       if (!o.isMesh || !o.geometry) return;
       o.frustumCulled = false;
@@ -331,9 +331,9 @@ function makeRunner() {
         for (let i = 0; i < count; i++) {
           const x = pos.getX(i);
           if (Math.abs(x) > 0.68) keepVert[i] = 1;
-          colors[i * 3] = 0.86;
-          colors[i * 3 + 1] = 0.66;
-          colors[i * 3 + 2] = 0.50;
+          colors[i * 3] = 0.90;
+          colors[i * 3 + 1] = 0.70;
+          colors[i * 3 + 2] = 0.55;
         }
         if (geo.index) {
           const idx = geo.index.array, kept = [];
@@ -346,7 +346,7 @@ function makeRunner() {
         geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
         geo.computeVertexNormals();
       }
-      o.material = new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0x221812 });
+      o.material = new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0x261a14 });
     });
     root.add(model);
 
@@ -379,20 +379,22 @@ function makeRunner() {
       return { mount, mesh };
     };
 
-    // Student palette: crisp white school shirt, black shorts, warm skin, white socks, black/green Nanyang sneakers, backpack
-    const shirtMat = new THREE.MeshLambertMaterial({ color: 0xf4f6fc, emissive: 0x383c46 });
+    // Cute Kid Palette: crisp white school shirt, navy/black shorts, rosy warm skin, cute blue/yellow backpack
+    const shirtMat = new THREE.MeshLambertMaterial({ color: 0xf6f8ff, emissive: 0x3c404a });
     const placketMat = new THREE.MeshLambertMaterial({ color: 0xdce2ee, emissive: 0x2c3038 });
-    const badgeMat = new THREE.MeshBasicMaterial({ color: 0x1e48b8 });
-    const shortsMat = new THREE.MeshLambertMaterial({ color: 0x161922, emissive: 0x080a0e });
-    const beltMat = new THREE.MeshLambertMaterial({ color: 0x0c0d10 });
-    const buckleMat = new THREE.MeshBasicMaterial({ color: 0xd8dfe8 });
-    const skinMat = new THREE.MeshLambertMaterial({ color: 0xdca882, emissive: 0x241812 });
-    const sockMat = new THREE.MeshLambertMaterial({ color: 0xf2f5fa, emissive: 0x343842 });
-    const shoeMat = new THREE.MeshLambertMaterial({ color: 0x181a20, emissive: 0x08090c });
+    const badgeMat = new THREE.MeshBasicMaterial({ color: 0x1e58d8 });
+    const shortsMat = new THREE.MeshLambertMaterial({ color: 0x182238, emissive: 0x0a0e18 });
+    const beltMat = new THREE.MeshLambertMaterial({ color: 0x121318 });
+    const buckleMat = new THREE.MeshBasicMaterial({ color: 0xe2e8f0 });
+    const skinMat = new THREE.MeshLambertMaterial({ color: 0xe6b490, emissive: 0x281a14 });
+    const blushMat = new THREE.MeshBasicMaterial({ color: 0xf48fb1 });
+    const sockMat = new THREE.MeshLambertMaterial({ color: 0xf4f7fc, emissive: 0x383c46 });
+    const shoeMat = new THREE.MeshLambertMaterial({ color: 0x181a22, emissive: 0x08090c });
     const soleGreenMat = new THREE.MeshLambertMaterial({ color: 0x1d7a42, emissive: 0x0a2e18 });
-    const bagMat = new THREE.MeshLambertMaterial({ color: 0x1e2430, emissive: 0x0a0d14 });
-    const bagPocketMat = new THREE.MeshLambertMaterial({ color: 0x283040, emissive: 0x0e121a });
-    const hairMat = new THREE.MeshLambertMaterial({ color: 0x14151a, emissive: 0x060608 });
+    const bagMat = new THREE.MeshLambertMaterial({ color: 0x2658b8, emissive: 0x0e2248 });
+    const bagPocketMat = new THREE.MeshLambertMaterial({ color: 0xffca28, emissive: 0x4a3808 });
+    const charmMat = new THREE.MeshBasicMaterial({ color: 0xff5252 });
+    const hairMat = new THREE.MeshLambertMaterial({ color: 0x15161c, emissive: 0x06060a });
 
     const bSpine1 = getBone('Spine1'), bHips = getBone('Hips'), bNeck = getBone('Neck'), bHead = getBone('Head');
     r.bones = {
@@ -401,167 +403,185 @@ function makeRunner() {
       spine: bSpine1, neck: bNeck
     };
 
-    // 1. White Thai School Shirt Torso + School Backpack on Spine1
+    // 1. Cute Chubby Kid Torso in White School Shirt + Rounded Kid Backpack on Spine1
     if (bSpine1) {
       const mSpine = makeMount(bSpine1);
-      const torsoGeo = new THREE.CylinderGeometry(0.22, 0.195, 0.66, 28, 12);
+      const torsoGeo = new THREE.CylinderGeometry(0.185, 0.175, 0.48, 28, 12);
       const tp = torsoGeo.attributes.position;
       for (let i = 0; i < tp.count; i++) {
         let tx = tp.getX(i), ty = tp.getY(i), tz = tp.getZ(i);
         let sh = 1.0;
-        if (ty > 0.22) sh = 1.12 - 0.50 * ((ty - 0.22) / 0.11);
-        else if (ty > 0.08) sh = 1.0 + 0.12 * ((ty - 0.08) / 0.14);
-        tx *= sh * 1.10;
-        tz *= 0.68 * sh;
+        if (ty > 0.15) sh = 1.10 - 0.45 * ((ty - 0.15) / 0.09);
+        else if (ty > 0.04) sh = 1.0 + 0.10 * ((ty - 0.04) / 0.11);
+        tx *= sh * 1.08;
+        tz *= 0.78 * sh;
         tp.setXYZ(i, tx, ty, tz);
       }
       torsoGeo.computeVertexNormals();
       const torsoMesh = new THREE.Mesh(torsoGeo, shirtMat);
-      torsoMesh.position.set(0, 0.03, -0.01);
+      torsoMesh.position.set(0, 0.02, -0.005);
       mSpine.add(torsoMesh);
 
-      // Front button placket + left chest pocket + embroidered school initials
+      // Front button placket + left chest pocket + embroidered school badge
       const placket = new THREE.Mesh(boxG, placketMat);
-      placket.scale.set(0.032, 0.54, 0.02); placket.position.set(0, 0.02, 0.135);
+      placket.scale.set(0.028, 0.40, 0.02); placket.position.set(0, 0.02, 0.135);
       mSpine.add(placket);
       const pocket = new THREE.Mesh(boxG, placketMat);
-      pocket.scale.set(0.085, 0.095, 0.018); pocket.position.set(0.085, 0.10, 0.132);
+      pocket.scale.set(0.072, 0.078, 0.018); pocket.position.set(0.072, 0.07, 0.132);
       mSpine.add(pocket);
       const badge = new THREE.Mesh(boxG, badgeMat);
-      badge.scale.set(0.065, 0.018, 0.018); badge.position.set(0.085, 0.165, 0.132);
+      badge.scale.set(0.055, 0.016, 0.018); badge.position.set(0.072, 0.125, 0.132);
       mSpine.add(badge);
 
-      // 3D Black School Backpack (กระเป๋าเป้นักเรียนสะพายหลัง)
-      const bagMain = new THREE.Mesh(cap(0.145, 0.24), bagMat);
-      bagMain.scale.set(1.25, 1.0, 0.68); bagMain.position.set(0, 0.04, -0.185);
+      // Cute Rounded Elementary School Backpack (สีน้ำเงินสดใส + กระเป๋าหน้าสีเหลือง + พวงกุญแจกลมสีแดง)
+      const bagMain = new THREE.Mesh(cap(0.145, 0.18), bagMat);
+      bagMain.scale.set(1.22, 1.0, 0.75); bagMain.position.set(0, 0.02, -0.165);
       mSpine.add(bagMain);
-      const bagPouch = new THREE.Mesh(cap(0.11, 0.12), bagPocketMat);
-      bagPouch.scale.set(1.30, 1.0, 0.55); bagPouch.position.set(0, -0.05, -0.255);
+      const bagPouch = new THREE.Mesh(cap(0.105, 0.08), bagPocketMat);
+      bagPouch.scale.set(1.25, 1.0, 0.58); bagPouch.position.set(0, -0.05, -0.235);
       mSpine.add(bagPouch);
-      const strip = new THREE.Mesh(boxG, new THREE.MeshBasicMaterial({ color: 0xf1c40f }));
-      strip.scale.set(0.22, 0.028, 0.02); strip.position.set(0, 0.14, -0.275);
-      mSpine.add(strip);
+      // Cute red keychain charm hanging on the backpack
+      const charm = new THREE.Mesh(new THREE.SphereGeometry(0.032, 12, 10), charmMat);
+      charm.position.set(0.09, -0.01, -0.265);
+      mSpine.add(charm);
       [-1, 1].forEach((s) => {
         const strap = new THREE.Mesh(boxG, bagMat);
-        strap.scale.set(0.042, 0.52, 0.30); strap.position.set(s * 0.135, 0.07, -0.01);
+        strap.scale.set(0.038, 0.38, 0.28); strap.position.set(s * 0.11, 0.04, -0.01);
         mSpine.add(strap);
       });
     }
     if (bNeck && bHead) {
-      spanSegment(bNeck, bHead, -0.25, 1.20, 0.082, 0.076, skinMat, 1, 1);
+      spanSegment(bNeck, bHead, -0.25, 1.20, 0.072, 0.068, skinMat, 1, 1);
       const mNeck = makeMount(bNeck);
-      const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.094, 0.108, 0.055, 20), shirtMat);
+      const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.088, 0.102, 0.048, 20), shirtMat);
       collar.position.set(0, 0.005, -0.005);
       mNeck.add(collar);
     }
 
-    // 2. Short White School Shirt Sleeves + Bare Human Forearms
+    // 2. Cute Short White School Sleeves + Chubby Kid Forearms
     [
       ['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand'],
       ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand']
     ].forEach(([sName, uName, fName, hName]) => {
       const bS = getBone(sName), bU = getBone(uName), bF = getBone(fName), bH = getBone(hName);
-      if (bS && bU) spanSegment(bS, bU, -0.30, 1.12, 0.122, 0.105, shirtMat, 1, 0.90);
+      if (bS && bU) spanSegment(bS, bU, -0.30, 1.12, 0.102, 0.092, shirtMat, 1, 0.92);
       if (bU) {
         const mU = makeMount(bU);
-        mU.add(new THREE.Mesh(new THREE.SphereGeometry(0.105, 14, 10), shirtMat));
+        mU.add(new THREE.Mesh(new THREE.SphereGeometry(0.092, 14, 10), shirtMat));
       }
-      // Short white sleeve covering top 56% of upper arm + bare skin lower upper-arm & forearm
-      spanSegment(bU, bF, -0.04, 0.56, 0.104, 0.096, shirtMat, 1, 0.94);
-      spanSegment(bU, bF, 0.52, 1.04, 0.078, 0.070, skinMat, 1, 0.94);
+      spanSegment(bU, bF, -0.04, 0.58, 0.092, 0.086, shirtMat, 1, 0.95);
+      spanSegment(bU, bF, 0.54, 1.04, 0.068, 0.062, skinMat, 1, 0.95);
       if (bF) {
         const mF = makeMount(bF);
-        mF.add(new THREE.Mesh(new THREE.SphereGeometry(0.070, 14, 10), skinMat));
+        mF.add(new THREE.Mesh(new THREE.SphereGeometry(0.062, 14, 10), skinMat));
       }
-      spanSegment(bF, bH, -0.04, 1.02, 0.068, 0.054, skinMat, 1, 0.94);
+      spanSegment(bF, bH, -0.04, 1.02, 0.060, 0.048, skinMat, 1, 0.95);
     });
 
-    // 3. Black Thai High School Shorts + Student Belt + White Socks + Nanyang Sneakers
+    // 3. Cute Kid School Shorts + Belt + Chubby Knees + White Crew Socks + Nanyang Sneakers
     if (bHips) {
       const mHips = makeMount(bHips);
-      const hipMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.215, 0.28, 24), shortsMat);
-      hipMesh.scale.set(1.08, 1, 0.78); hipMesh.position.set(0, -0.02, 0);
+      const hipMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.175, 0.188, 0.22, 24), shortsMat);
+      hipMesh.scale.set(1.08, 1, 0.84); hipMesh.position.set(0, -0.01, 0);
       mHips.add(hipMesh);
-      const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.206, 0.206, 0.048, 24), beltMat);
-      belt.scale.set(1.09, 1, 0.79); belt.position.set(0, 0.09, 0);
+      const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.180, 0.180, 0.042, 24), beltMat);
+      belt.scale.set(1.09, 1, 0.85); belt.position.set(0, 0.07, 0);
       mHips.add(belt);
       const buckle = new THREE.Mesh(boxG, buckleMat);
-      buckle.scale.set(0.068, 0.055, 0.025); buckle.position.set(0, 0.09, 0.162);
+      buckle.scale.set(0.062, 0.050, 0.025); buckle.position.set(0, 0.07, 0.152);
       mHips.add(buckle);
     }
     [['LeftUpLeg', 'LeftLeg', 'LeftFoot'], ['RightUpLeg', 'RightLeg', 'RightFoot']].forEach(([uLeg, lLeg, foot]) => {
       const bUL = getBone(uLeg), bLL = getBone(lLeg), bFt = getBone(foot);
-      // Black school shorts down 75% of the thigh + bare skin knee
-      spanSegment(bUL, bLL, -0.08, 0.74, 0.132, 0.118, shortsMat, 1, 1);
-      spanSegment(bUL, bLL, 0.70, 1.02, 0.088, 0.080, skinMat, 1, 1);
+      spanSegment(bUL, bLL, -0.08, 0.72, 0.112, 0.102, shortsMat, 1, 1);
+      spanSegment(bUL, bLL, 0.68, 1.02, 0.076, 0.070, skinMat, 1, 1);
       if (bLL) {
         const mLL = makeMount(bLL);
-        mLL.add(new THREE.Mesh(new THREE.SphereGeometry(0.080, 14, 10), skinMat));
+        mLL.add(new THREE.Mesh(new THREE.SphereGeometry(0.070, 14, 10), skinMat));
       }
-      // Bare upper calf (0..54%) + White pulled-up school sock (52%..100%)
-      spanSegment(bLL, bFt, -0.02, 0.54, 0.078, 0.066, skinMat, 1, 1);
-      spanSegment(bLL, bFt, 0.52, 1.02, 0.070, 0.056, sockMat, 1, 1);
+      spanSegment(bLL, bFt, -0.02, 0.50, 0.068, 0.058, skinMat, 1, 1);
+      spanSegment(bLL, bFt, 0.48, 1.02, 0.062, 0.052, sockMat, 1, 1);
 
-      // Thai Student Black Sneakers with White Toe Cap & Green Nanyang Sole
       if (bFt) {
         const mFoot = makeMount(bFt);
-        const ankleSock = new THREE.Mesh(new THREE.SphereGeometry(0.056, 12, 10), sockMat);
+        const ankleSock = new THREE.Mesh(new THREE.SphereGeometry(0.052, 12, 10), sockMat);
         mFoot.add(ankleSock);
-        const shoeBody = new THREE.Mesh(cap(0.058, 0.14), shoeMat);
+        const shoeBody = new THREE.Mesh(cap(0.052, 0.11), shoeMat);
         shoeBody.rotation.x = Math.PI / 2 + 0.10;
-        shoeBody.scale.set(1.12, 1, 0.76);
-        shoeBody.position.set(0, -0.092, 0.065);
+        shoeBody.scale.set(1.15, 1, 0.78);
+        shoeBody.position.set(0, -0.068, 0.050);
         mFoot.add(shoeBody);
-        const toeCap = new THREE.Mesh(new THREE.SphereGeometry(0.058, 14, 10), sockMat);
-        toeCap.scale.set(1.10, 0.68, 0.95);
-        toeCap.position.set(0, -0.098, 0.175);
+        const toeCap = new THREE.Mesh(new THREE.SphereGeometry(0.052, 14, 10), sockMat);
+        toeCap.scale.set(1.12, 0.70, 0.95);
+        toeCap.position.set(0, -0.072, 0.135);
         mFoot.add(toeCap);
         const foxing = new THREE.Mesh(boxG, sockMat);
-        foxing.scale.set(0.125, 0.026, 0.25);
-        foxing.position.set(0, -0.118, 0.082);
+        foxing.scale.set(0.112, 0.022, 0.20);
+        foxing.position.set(0, -0.088, 0.062);
         mFoot.add(foxing);
         const greenSole = new THREE.Mesh(boxG, soleGreenMat);
-        greenSole.scale.set(0.128, 0.018, 0.255);
-        greenSole.position.set(0, -0.132, 0.082);
+        greenSole.scale.set(0.115, 0.016, 0.205);
+        greenSole.position.set(0, -0.100, 0.062);
         mFoot.add(greenSole);
       }
     });
 
-    // 4. 3D Thai Student Head & Short Student Haircut (ทรงนักเรียน / รองทรง)
+    // 4. Big Cute Chubby Kid Head + Full Rounded Bowl-Cut Hair (หัวโตแก้มชมพู ทรงกะลาครอบน่ารัก!)
     if (bHead) {
       const mHead = makeMount(bHead);
       const headGroup = new THREE.Group();
-      headGroup.position.set(0, 0.11, 0.015);
-      // Human head sphere
-      const skull = new THREE.Mesh(new THREE.SphereGeometry(0.125, 22, 18), skinMat);
-      skull.scale.set(0.92, 1.12, 0.98);
+      headGroup.position.set(0, 0.145, 0.01);
+      // Chubby round kid skull (nearly 2x larger for cute kid proportions!)
+      const skull = new THREE.Mesh(new THREE.SphereGeometry(0.195, 24, 20), skinMat);
+      skull.scale.set(1.02, 0.98, 0.98);
       headGroup.add(skull);
-      // Ears
+      // Cute round kid ears
       [-1, 1].forEach((s) => {
-        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.028, 10, 8), skinMat);
-        ear.scale.set(0.45, 1.1, 0.75); ear.position.set(s * 0.115, -0.005, -0.005);
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.042, 12, 10), skinMat);
+        ear.scale.set(0.50, 1.0, 0.80); ear.position.set(s * 0.192, -0.01, -0.005);
         headGroup.add(ear);
       });
-      // Eyes, eyebrows & nose (visible on menu & front PiP camera)
+      // Big expressive anime/Pixar kid eyes + white catchlight sparkles + rosy pink cheeks!
       [-1, 1].forEach((s) => {
-        const eyeW = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), sockMat);
-        eyeW.scale.set(1.1, 0.75, 0.5); eyeW.position.set(s * 0.042, 0.015, 0.112);
+        const eyeW = new THREE.Mesh(new THREE.SphereGeometry(0.034, 12, 10), sockMat);
+        eyeW.scale.set(1.05, 1.15, 0.45); eyeW.position.set(s * 0.068, 0.005, 0.174);
         headGroup.add(eyeW);
-        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.010, 8, 8), hairMat);
-        pupil.position.set(s * 0.042, 0.015, 0.121);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 10), hairMat);
+        pupil.scale.set(1.0, 1.1, 0.5); pupil.position.set(s * 0.068, 0.005, 0.184);
         headGroup.add(pupil);
+        const spark = new THREE.Mesh(new THREE.SphereGeometry(0.008, 8, 8), buckleMat);
+        spark.position.set(s * 0.068 + 0.007, 0.014, 0.193);
+        headGroup.add(spark);
         const brow = new THREE.Mesh(boxG, hairMat);
-        brow.scale.set(0.036, 0.009, 0.012); brow.position.set(s * 0.042, 0.038, 0.116);
+        brow.scale.set(0.048, 0.012, 0.015); brow.position.set(s * 0.068, 0.052, 0.178);
+        brow.rotation.z = s * 0.12;
         headGroup.add(brow);
+        // Rosy pink chubby cheek blush
+        const blush = new THREE.Mesh(new THREE.SphereGeometry(0.028, 10, 8), blushMat);
+        blush.scale.set(1.3, 0.75, 0.35); blush.position.set(s * 0.105, -0.038, 0.162);
+        headGroup.add(blush);
       });
-      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), skinMat);
-      nose.scale.set(0.85, 1.25, 1.1); nose.position.set(0, -0.008, 0.124);
+      // Cute button nose
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), skinMat);
+      nose.scale.set(1.0, 0.9, 1.0); nose.position.set(0, -0.020, 0.192);
       headGroup.add(nose);
-      // Neat black Thai Student Haircut (ทรงนักเรียน/รองทรงสูง)
-      const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.132, 22, 16, 0, Math.PI * 2, 0, 1.72), hairMat);
-      hairTop.scale.set(0.94, 1.08, 1.02); hairTop.position.set(0, 0.012, -0.004);
-      hairTop.rotation.x = -0.14;
-      headGroup.add(hairTop);
+      // Full rounded bowl-cut hair covering top, sides & entire back of the head (never bald in back!)
+      const hairDome = new THREE.Mesh(new THREE.SphereGeometry(0.208, 24, 18, 0, Math.PI * 2, 0, 1.98), hairMat);
+      hairDome.scale.set(1.03, 1.00, 1.03);
+      hairDome.position.set(0, 0.015, -0.008);
+      hairDome.rotation.x = 0.22; // tilted slightly backward so the back of the head is fully covered in hair!
+      headGroup.add(hairDome);
+      // Front bangs across the forehead
+      const bangs = new THREE.Mesh(new THREE.SphereGeometry(0.204, 20, 12, 0, Math.PI * 2, 0, 1.25), hairMat);
+      bangs.scale.set(1.02, 0.95, 1.02);
+      bangs.position.set(0, 0.022, 0.008);
+      bangs.rotation.x = -0.35;
+      headGroup.add(bangs);
+      // Cute little cowlick hair tuft (หงอนผมเด็กน้อย) on top of the head!
+      const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.085, 8), hairMat);
+      tuft.position.set(0.02, 0.235, -0.01);
+      tuft.rotation.z = -0.35;
+      headGroup.add(tuft);
       mHead.add(headGroup);
     }
 
