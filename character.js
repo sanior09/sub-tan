@@ -355,16 +355,8 @@ function makeGhost() {
           let r = 0.80, g = 0.62, b = 0.48;
 
           if (ax > 0.68) {
-            // Keep realistic 5-fingered human hands
+            // Keep ONLY realistic 5-fingered human hands; delete Xbot's boot-shaped feet completely!
             keepVert[i] = 1;
-          } else if (!isJoints && y < 0.28 && ax < 0.22) {
-            // Keep bare human feet & ankles (no shoes!)
-            keepVert[i] = 1;
-            if (y < 0.08) {
-              x *= 0.93;
-              const toeShade = (z > 0.09 && y < 0.04) ? 0.92 + 0.06 * Math.sin(x * 160) : 1.0;
-              r = 0.77 * toeShade; g = 0.58 * toeShade; b = 0.44 * toeShade;
-            }
           }
           pos.setXYZ(i, x, y, z);
           colors[i * 3] = r;
@@ -522,10 +514,38 @@ function makeGhost() {
         mUL.add(cMesh);
       }
       // Smooth bare human lower calf & ankle (spanning knee to foot, bridging the ankle seamlessly)
-      spanLimb(bLL, bFt, 0.075, 0.052, skinMat, -0.10, 0.05, 1, 1);
-      // Smooth bare human foot (no shoes!)
-      if (bFt && bToe) {
-        spanLimb(bFt, bToe, 0.055, 0.048, skinMat, 0.03, 0.02, 1.15, 0.72);
+      spanLimb(bLL, bFt, 0.072, 0.044, skinMat, -0.10, 0.04, 1, 1);
+      // Real sculpted bare human foot with heel, arch, and 5 distinct bare toes (NO shoes!)
+      if (bFt) {
+        const mFoot = makeMount(bFt);
+        const isLeft = /Left/i.test(foot);
+        const inSign = isLeft ? -1 : 1; // inner side where the big toe sits
+        // Heel + flat bare foot arch
+        const heel = new THREE.Mesh(new THREE.SphereGeometry(0.044, 14, 10), skinMat);
+        heel.position.set(0, -0.055, -0.01);
+        heel.scale.set(0.95, 0.85, 1.15);
+        mFoot.add(heel);
+        const arch = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.046, 0.17, 16), skinMat);
+        arch.rotation.x = Math.PI / 2 + 0.14;
+        arch.scale.set(1.18, 1, 0.58);
+        arch.position.set(0, -0.068, 0.075);
+        mFoot.add(arch);
+        // 5 bare toes (big toe -> pinky toe)
+        const nailMat = new THREE.MeshLambertMaterial({ color: 0xe6bfb0, emissive: 0x1e1612, fog: false });
+        for (let t = 0; t < 5; t++) {
+          const rToe = t === 0 ? 0.016 : 0.013 - t * 0.0012;
+          const lenToe = t === 0 ? 0.046 : 0.038 - t * 0.003;
+          const tx = inSign * (0.034 - t * 0.017);
+          const tz = 0.165 - t * 0.007;
+          const toeMesh = new THREE.Mesh(cap(rToe, lenToe), skinMat);
+          toeMesh.rotation.x = Math.PI / 2;
+          toeMesh.position.set(tx, -0.082, tz);
+          mFoot.add(toeMesh);
+          const nail = new THREE.Mesh(new THREE.SphereGeometry(rToe * 0.75, 8, 6), nailMat);
+          nail.scale.set(1, 0.35, 1.1);
+          nail.position.set(tx, -0.082 + rToe * 0.7, tz + lenToe * 0.45);
+          mFoot.add(nail);
+        }
       }
     });
 
