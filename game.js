@@ -388,6 +388,7 @@ function start() {
   initAudio();
   reset();
   paused = false;
+  ui.pauseBtn.textContent = '⏸ พักเกม';
   state = 'play';
   sfx.hit();
   shake = 0.45;
