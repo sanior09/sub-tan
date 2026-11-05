@@ -638,14 +638,14 @@ $('restartBtn').addEventListener('click', (e) => { e.stopPropagation(); start();
 function animateRunner(dt, running) {
   const air = py > 0.02, sl = slideT > 0;
   const k = Math.min(1, dt * 18);
-  if (player.mixer) {                                   // glTF robot
+  if (player.mixer) {                                   // 3D Thai Student (Mixamo glTF)
     const anim = state === 'dead' ? 'Death' : state === 'menu' ? 'Sitting' : air ? 'Jump' : sl ? 'Sitting' : 'Running';
     player.play(anim, anim === 'Death' ? 0.05 : 0.08);
-    if (player.actions.Running) player.actions.Running.timeScale = 0.9 + speed * 0.03;
+    if (player.actions.Running) player.actions.Running.timeScale = 1.25 + speed * 0.032;
     player.mixer.update(dt);
     if (state === 'menu') {
       const bow = player.posePray(clock);
-      player.group.rotation.set(0.08 + bow * 0.38, Math.PI + 1.12, 0);  // YXZ: bows straight forward toward ศาลเจ้าพ่อตาล!
+      player.group.rotation.set(0.02 + bow * 0.06, Math.PI + 1.12, 0);  // YXZ: student bows waist & Wai hands toward ศาลเจ้าพ่อตาล!
       player.group.position.set(0, 0, 0);
     } else {
       if (player.incense) player.incense.visible = false;

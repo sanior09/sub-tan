@@ -31,36 +31,8 @@ function loadWrapTex(b64, rx, ry, ox) {
 tex.shirt = loadWrapTex(window.SHIRT_TEX, 2, 1, 0.5);
 tex.chong = loadWrapTex(window.CHONG_TEX, 2, 1, 0);
 
-// Clean background wall, dark blazer shoulder, and white shirt collar around the head,
-// filling outer pixels with natural hair (top) or warm skin tone (bottom) for seamless 3D head wrapping.
-function cleanHeadCanvas(ctx, w, h) {
-  const id = ctx.getImageData(0, 0, w, h), d = id.data;
-  for (let y = 0; y < h; y++) {
-    const ny = y / h; // 0 at top (hair), 1 at bottom (chin)
-    for (let x = 0; x < w; x++) {
-      const nx = x / w;
-      const i = (y * w + x) * 4;
-      const r = d[i], g = d[i + 1], b = d[i + 2];
-      const max = Math.max(r, g, b), min = Math.min(r, g, b);
-      const l = (r + g + b) / 3;
-      const isWall = (l > 176 && (max - min) < 38 && (r - b) < 28) || (nx < 0.29 && ny < 0.25 && l > 142 && (max - min) < 26);
-      const isBlazer = ny > 0.67 && l < 92 && (r - b) < 24;
-      const isCollar = ny > 0.76 && l > 152 && (r - b) < 36;
-      if (isWall || isBlazer || isCollar) {
-        if (ny < 0.50) {
-          d[i] = 24; d[i + 1] = 24; d[i + 2] = 28; d[i + 3] = 255;
-        } else {
-          d[i] = 198; d[i + 1] = 148; d[i + 2] = 114; d[i + 3] = 255;
-        }
-      } else {
-        d[i + 3] = 255;
-      }
-    }
-  }
-  ctx.putImageData(id, 0, 0);
-}
-
-// Remove the bright cream/white classroom wall backdrop via border flood-fill (for chest crop).
+// Remove the bright cream/white classroom wall backdrop via border flood-fill.
+// Preserves the white shirt collar and rolled-up white eyes inside the silhouette.
 function keyBackground(ctx, w, h, maskFn, isChest) {
   const id = ctx.getImageData(0, 0, w, h), d = id.data, n = w * h;
   const bg = new Uint8Array(n), st = [];
@@ -68,6 +40,7 @@ function keyBackground(ctx, w, h, maskFn, isChest) {
     const i = p * 4, r = d[i], g = d[i + 1], b = d[i + 2];
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
     const l = (r + g + b) / 3;
+    // bright neutral/warm wall vs dark hair/blazer or warm saturated skin
     return l > 182 && (max - min) < 38 && (r - b) < 28;
   };
   const push = (p) => { if (!bg[p] && isWall(p)) { bg[p] = 1; st.push(p); } };
@@ -83,12 +56,21 @@ function keyBackground(ctx, w, h, maskFn, isChest) {
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const p = y * w + x, i = p * 4;
     if (bg[p]) { d[i + 3] = 0; continue; }
+    let near = false;
+    for (let dy = -2; dy <= 2 && !near; dy++) for (let dx = -2; dx <= 2; dx++) {
+      const xx = x + dx, yy = y + dy;
+      if (xx >= 0 && yy >= 0 && xx < w && yy < h && bg[yy * w + xx]) { near = true; break; }
+    }
+    if (near) {
+      const l = (d[i] + d[i + 1] + d[i + 2]) / 3;
+      d[i + 3] = Math.round(255 * Math.max(0, Math.min(1, (215 - l) / 55)));
+    }
     if (maskFn) d[i + 3] = Math.round(d[i + 3] * maskFn(x, y));
   }
   ctx.putImageData(id, 0, 0);
 }
 
-// Natural, high-clarity face: preserves warm human skin tone so the head matches the neck, hands, and legs.
+// Sharp, high-clarity ghost face: preserves skin/hair/rolled-eye contrast so the face is unmistakably clear.
 function ghostify(src, dst, decorate) {
   const w = src.width, h = src.height, ctx = dst.getContext('2d');
   ctx.clearRect(0, 0, w, h); ctx.drawImage(src, 0, 0);
@@ -97,10 +79,11 @@ function ghostify(src, dst, decorate) {
     if (!d[i + 3]) continue;
     const r = d[i], g = d[i + 1], b = d[i + 2];
     const l = 0.299 * r + 0.587 * g + 0.114 * b;
-    const c = Math.max(0, Math.min(255, (l - 118) * 1.18 + 124));
-    d[i]     = Math.max(0, Math.min(255, r * 0.82 + c * 0.18));
-    d[i + 1] = Math.max(0, Math.min(255, g * 0.80 + c * 0.20));
-    d[i + 2] = Math.max(0, Math.min(255, b * 0.78 + c * 0.22));
+    const c = Math.max(0, Math.min(255, (l - 118) * 1.25 + 128));
+    // blend 45% original color + 55% cold pale contrast so facial features stay super sharp
+    d[i]     = Math.max(0, Math.min(255, r * 0.45 + c * 0.50));
+    d[i + 1] = Math.max(0, Math.min(255, g * 0.45 + c * 0.56));
+    d[i + 2] = Math.max(0, Math.min(255, b * 0.45 + c * 0.65 + 10));
   }
   ctx.putImageData(id, 0, 0);
   if (decorate) { ctx.globalCompositeOperation = 'source-atop'; decorate(ctx); ctx.globalCompositeOperation = 'source-over'; }
@@ -118,7 +101,13 @@ const toTex = (px, py) => [(px - (FACE_CX - FACE_HALF)) * FS, (py - (FACE_CY - F
     // ---- face crop
     const fctx = canvases.face.getContext('2d');
     fctx.drawImage(img, FACE_CX - FACE_HALF, FACE_CY - FACE_HALF, FACE_HALF * 2, FACE_HALF * 2, 0, 0, FACE_PX, FACE_PX);
-    cleanHeadCanvas(fctx, FACE_PX, FACE_PX);
+    const RXM = 408, RYM = 468, c = FACE_PX / 2;
+    keyBackground(fctx, FACE_PX, FACE_PX, (x, y) => {      // oval soft mask around hair + chin
+      const dy = y - (c - 10);
+      const ry = dy > 0 ? RYM * 0.90 : RYM;                // trim collar below chin cleanly
+      const dd = Math.hypot((x - c) / RXM, dy / ry);
+      return Math.max(0, Math.min(1, (1.0 - dd) / 0.08));
+    }, false);
     ghostify(canvases.face, canvases.ghostFace, (ctx) => {
       // subtle blood streaks below the lower eyelids without covering the rolled-up eyes!
       const [lx, ly] = toTex(258, 516), [rx, ry] = toTex(396, 528);
@@ -142,7 +131,7 @@ const toTex = (px, py) => [(px - (FACE_CX - FACE_HALF)) * FS, (py - (FACE_CY - F
   img.src = window.TAN_PHOTO;
 })();
 
-// ------------------------------------------------------------ true 3D sculpted human head (closed 360° skull + jaw + ears)
+// ------------------------------------------------------------ sculpted head
 function buildHead(ghost, noFace) {
   const head = new THREE.Group();
   if (noFace) {                                  // generic head (fallback runner, no Tan face)
@@ -152,91 +141,47 @@ function buildHead(ghost, noFace) {
     cap.scale.set(0.32, 0.35, 0.32); cap.position.y = 0.02; head.add(cap);
     return { group: head, mats: [] };
   }
-  const RX = 0.235, RY = 0.275, RZ = 0.245;
-  const geo = new THREE.SphereGeometry(1, 64, 48);
+  const RX = 0.32, RY = 0.33, RZ = 0.28, P = 0.72, S = P / (FACE_HALF * 2);
+  const geo = new THREE.PlaneGeometry(P, P, 64, 64);
   const pos = geo.attributes.position;
-  const uv = geo.attributes.uv;
-  const count = pos.count;
-  const colors = new Float32Array(count * 3);
   const bump = (x, y, cx, cy, sx, sy, a) => a * Math.exp(-(((x - cx) / sx) ** 2 + ((y - cy) / sy) ** 2));
-  const S = (RY * 2) / 472;
-  const fx = (px) => (px - 325) * S, fy = (py) => -(py - 529) * S;
-
-  for (let i = 0; i < count; i++) {
-    const sx = pos.getX(i), sy = pos.getY(i), sz = pos.getZ(i);
-    // Anatomical human skull dome + tapered jawline & chin
-    const jawTaper = sy < 0 ? (1.0 - 0.27 * Math.pow(-sy, 1.25)) : (1.0 - 0.05 * sy * sy);
-    const chinDepth = sy < 0 ? (0.92 - 0.14 * (-sy)) : 0.96;
-    const x = sx * RX * jawTaper;
-    const y = sy * RY;
-    let z = sz * RZ * chinDepth;
-
-    if (sz > 0) {
-      const f = Math.pow(sz, 0.75);
+  const fx = (px) => (px - FACE_CX) * S, fy = (py) => -(py - FACE_CY) * S;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i);
+    const ryz = y < 0 ? 0.45 : RY;                          // lower face stays full-depth (chin sticks out)
+    const q = 1 - (x / RX) ** 2 - (y / ryz) ** 2;
+    let z = 0;
+    if (q > 0) {
+      z = RZ * Math.sqrt(q);
+      const f = Math.min(1, q * 4);                         // relief fades toward the silhouette
       z += f * (
-        bump(x, y, fx(334), fy(545), 0.024, 0.055, 0.026) +  // nose bridge
-        bump(x, y, fx(332), fy(588), 0.046, 0.034, 0.038) +  // nose tip / ball
-        bump(x, y, fx(296), fy(596), 0.024, 0.020, 0.014) +  // nostril wings
-        bump(x, y, fx(366), fy(598), 0.024, 0.020, 0.014) +
-        bump(x, y, fx(330), fy(485), 0.14,  0.022, 0.013) +  // brow ridge
-        bump(x, y, fx(258), fy(516), 0.038, 0.024, -0.008) + // left rolled eye socket
-        bump(x, y, fx(396), fy(528), 0.038, 0.024, -0.008) + // right rolled eye socket
-        bump(x, y, fx(330), fy(680), 0.052, 0.022, 0.016) +  // lips
-        bump(x, y, fx(330), fy(745), 0.064, 0.036, 0.018) +  // chin
-        bump(x, y, fx(215), fy(610), 0.064, 0.072, 0.011) +  // full cheeks
-        bump(x, y, fx(435), fy(615), 0.064, 0.072, 0.011));
+        bump(x, y, fx(334), fy(545), 0.028, 0.065, 0.028) +  // nose bridge
+        bump(x, y, fx(332), fy(588), 0.055, 0.038, 0.042) +  // nose tip / ball
+        bump(x, y, fx(296), fy(596), 0.028, 0.024, 0.016) +  // nostril wings
+        bump(x, y, fx(366), fy(598), 0.028, 0.024, 0.016) +
+        bump(x, y, fx(330), fy(485), 0.16, 0.024, 0.014) +   // brow ridge
+        bump(x, y, fx(258), fy(516), 0.045, 0.028, -0.010) + // left rolled eye
+        bump(x, y, fx(396), fy(528), 0.045, 0.028, -0.010) + // right rolled eye
+        bump(x, y, fx(330), fy(680), 0.062, 0.025, 0.018) +  // lips
+        bump(x, y, fx(330), fy(745), 0.075, 0.042, 0.018) +  // chin
+        bump(x, y, fx(215), fy(610), 0.075, 0.085, 0.012) +  // full cheeks
+        bump(x, y, fx(435), fy(615), 0.075, 0.085, 0.012));
     }
-    pos.setXYZ(i, x, y, z);
-
-    // Map front hemisphere directly to Tan's face crop; wrap sides/back seamlessly
-    const rxPhoto = sy >= 0 ? 175.0 : 158.0 * jawTaper;
-    const pxCrop = Math.max(8, Math.min(502, (243.0 + 7.0 * sy) + sx * rxPhoto));
-    const pyCrop = Math.max(8, Math.min(502, 254.0 - sy * 236.0));
-    if (sz >= 0.08) {
-      uv.setXY(i, pxCrop / 510.0, 1.0 - pyCrop / 510.0);
-    } else if (sy > -0.35) {
-      // Back & crown of skull samples dark hair region at top-center of texture
-      uv.setXY(i, 0.50, 0.92);
-    } else {
-      // Under-jaw & nape samples warm skin region at bottom-center of texture
-      uv.setXY(i, 0.46, 0.08);
-    }
-
-    // Smooth vertex color shading: full brightness on front face, natural hair/nape shading on back
-    let wFront = Math.max(0, Math.min(1, (sz - 0.08) / 0.24));
-    if (sy < -0.15 && Math.abs(sx) > 0.78) {
-      wFront *= Math.max(0, Math.min(1, (0.94 - Math.abs(sx)) / 0.16));
-    }
-    const isBackHair = sy > -0.22 || (sy > -0.45 && sz < -0.12);
-    const br = isBackHair ? 0.18 : 0.90;
-    const bg = isBackHair ? 0.18 : 0.86;
-    const bb = isBackHair ? 0.21 : 0.82;
-    colors[i * 3]     = wFront * 1.0 + (1 - wFront) * br;
-    colors[i * 3 + 1] = wFront * 1.0 + (1 - wFront) * bg;
-    colors[i * 3 + 2] = wFront * 1.0 + (1 - wFront) * bb;
+    pos.setZ(i, z);
   }
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geo.computeVertexNormals();
-  uv.needsUpdate = true;
-
   const map = ghost ? tex.ghostFace : tex.face;
-  const faceMat = new THREE.MeshLambertMaterial({
-    map, emissiveMap: map, vertexColors: true,
-    color: 0xf2ece6, emissive: 0x524c48, fog: false
-  });
+  const faceMat = ghost
+    ? new THREE.MeshLambertMaterial({ map, emissiveMap: map, emissive: 0x707c92, color: 0x808898, transparent: true, alphaTest: 0.03, fog: false })
+    : new THREE.MeshLambertMaterial({ map, emissiveMap: map, emissive: 0x555555, color: 0x8a8a8a, transparent: true, alphaTest: 0.03 });
   head.add(new THREE.Mesh(geo, faceMat));
 
-  // Sculpted 3D human ears on left and right sides of the head
-  const earMat = new THREE.MeshLambertMaterial({ color: 0xcc9e7a, emissive: 0x221812, fog: false });
-  [-1, 1].forEach((s) => {
-    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.036, 12, 10), earMat);
-    ear.scale.set(0.42, 1.28, 0.72);
-    ear.position.set(s * RX * 0.93, -0.025, -0.015);
-    ear.rotation.y = -s * 0.22;
-    head.add(ear);
-  });
-
-  return { group: head, mats: [faceMat, earMat] };
+  // back/top of the head: dark hair volume centered behind the face so it never sticks out to the side
+  const hairMat = new THREE.MeshLambertMaterial({ color: ghost ? 0x15161e : 0x141419 });
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 18, 0, Math.PI * 2, 0, 2.0), hairMat);
+  hair.scale.set(RX * 0.76, RY * 0.82, RZ * 0.82); hair.position.set(fx(332), 0.04, -0.065);
+  head.add(hair);
+  return { group: head, mats: [faceMat] };
 }
 
 // ------------------------------------------------------------ body (Subway-style proportions)
@@ -302,25 +247,33 @@ function makeHuman(ghost, noFace) {
 }
 
 // ------------------------------------------------------------ the runner: a ready-made cartoon robot (glTF)
-// Model: "RobotExpressive" by Tomás Laulhé (CC0), shipped with the three.js examples.
+// ------------------------------------------------------------ the runner: 3D Thai High School Student (นักเรียนไทย 3D)
+function decodeGLB(b64, ok, fail) {
+  try {
+    const bin = atob(b64), buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    new THREE.GLTFLoader().parse(buf.buffer, '', ok, fail);
+  } catch (e) { fail(e); }
+}
+
 function makeRunner() {
   const root = new THREE.Group();
-  // Incense sticks + marigold garland held while praying at the shrine in the menu screen
+  // Incense sticks + marigold garland held between palms while praying at ศาลเจ้าพ่อตาล
   const incense = new THREE.Group();
   const stickMat = new THREE.MeshLambertMaterial({ color: 0xb8332a });
   const ashMat = new THREE.MeshBasicMaterial({ color: 0xff5500 });
-  [-0.04, 0, 0.04].forEach((dx, i) => {
-    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.52, 6), stickMat);
-    st.position.set(dx, 0.22, 0); st.rotation.z = (i - 1) * 0.06; incense.add(st);
-    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.024, 8, 8), ashMat);
-    tip.position.set(dx * 1.3, 0.48, 0); incense.add(tip);
+  [-0.028, 0, 0.028].forEach((dx, i) => {
+    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.42, 6), stickMat);
+    st.position.set(dx, 0.18, 0); st.rotation.z = (i - 1) * 0.05; incense.add(st);
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 8), ashMat);
+    tip.position.set(dx * 1.25, 0.40, 0); incense.add(tip);
   });
   const malai = new THREE.Mesh(
-    new THREE.TorusGeometry(0.11, 0.038, 8, 16),
+    new THREE.TorusGeometry(0.085, 0.030, 8, 16),
     new THREE.MeshBasicMaterial({ color: 0xffb81f })
   );
-  malai.position.set(0, 0.06, 0.04); malai.rotation.x = Math.PI / 2; incense.add(malai);
-  incense.position.set(0, 1.05, 0.62);
+  malai.position.set(0, 0.04, 0.03); malai.rotation.x = Math.PI / 2; incense.add(malai);
+  incense.position.set(0, 1.48, 0.36);
   root.add(incense);
 
   const r = { group: root, mixer: null, actions: {}, current: null, fallback: null, incense, bones: {} };
@@ -328,49 +281,299 @@ function makeRunner() {
   r.play = (name, fade) => {
     const a = r.actions[name]; if (!a || r.current === name) return;
     const prev = r.actions[r.current];
-    a.reset().setEffectiveWeight(1).fadeIn(fade || 0.15).play();
-    if (prev) prev.fadeOut(fade || 0.15);
+    a.reset().setEffectiveWeight(1).fadeIn(fade || 0.12).play();
+    if (prev && prev !== a) prev.fadeOut(fade || 0.12);
     r.current = name;
   };
   r.posePray = (t) => {
     const bow = (Math.sin(t * 4.5) + 1) * 0.5;                 // 0..1 rhythmic Wai bow forward
     incense.visible = true;
-    incense.position.set(0, 0.92 + bow * 0.16, 0.56 + bow * 0.08);
-    incense.rotation.set(0.25 + bow * 0.45, 0, 0);
+    // Pose the student's arms & waist in a real Thai Wai (พนมมือไหว้ธูปก้มหัว) while feet stay planted!
+    const b = r.bones;
+    if (b.lS && b.lA && b.lF && b.rS && b.rA && b.rF) {
+      if (b.spine) b.spine.rotation.set(0.06 + bow * 0.24, 0, 0);
+      if (b.neck) b.neck.rotation.set(0.14 + bow * 0.20, 0, 0);
+      b.lS.rotation.set(0, -0.35, 0);
+      b.lA.rotation.set(0.30 + bow * 0.08, -1.05, -0.75);
+      b.lF.rotation.set(0, -1.75, 0.65);
+      b.rS.rotation.set(0, 0.35, 0);
+      b.rA.rotation.set(0.30 + bow * 0.08, 1.05, 0.75);
+      b.rF.rotation.set(0, 1.75, -0.65);
+    }
+    incense.position.set(0, 1.44 - bow * 0.08, 0.38 + bow * 0.10);
+    incense.rotation.set(0.28 + bow * 0.32, 0, 0);
     return bow;
   };
-  try {
-    const bin = atob(window.ROBOT_GLB), buf = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-    new THREE.GLTFLoader().parse(buf.buffer, '', (gltf) => {
-      const model = gltf.scene;
-      const box = new THREE.Box3().setFromObject(model), h = box.max.y - box.min.y;
-      const k = 2.6 / h;                                        // ~Subway-sized hero
-      model.scale.setScalar(k); model.position.y = -box.min.y * k;
-      model.traverse((o) => {
-        if (o.isMesh && o.material) { o.material.fog = true; }
+
+  decodeGLB(window.XBOT_GLB, (gltf) => {
+    const model = gltf.scene;
+    model.updateMatrixWorld(true);
+    const headEnd = model.getObjectByName('mixamorigHeadTop_End') || model.getObjectByName('mixamorig:HeadTop_End');
+    let h = 1.8;
+    if (headEnd) {
+      const pTop = new THREE.Vector3(), pRoot = new THREE.Vector3();
+      headEnd.getWorldPosition(pTop); model.getWorldPosition(pRoot);
+      h = Math.max(0.5, pTop.y - pRoot.y);
+    }
+    const k = 2.40 / h;                                         // 3D Thai student height
+    model.scale.setScalar(k); model.position.y = 0;
+
+    // Strip robot armor/joints and keep only the realistic 5-fingered human hands
+    model.traverse((o) => {
+      if (!o.isMesh || !o.geometry) return;
+      o.frustumCulled = false;
+      const geo = o.geometry;
+      const pos = geo.attributes.position;
+      if (pos) {
+        const count = pos.count;
+        const colors = new Float32Array(count * 3);
+        const keepVert = new Uint8Array(count);
+        for (let i = 0; i < count; i++) {
+          const x = pos.getX(i);
+          if (Math.abs(x) > 0.68) keepVert[i] = 1;
+          colors[i * 3] = 0.86;
+          colors[i * 3 + 1] = 0.66;
+          colors[i * 3 + 2] = 0.50;
+        }
+        if (geo.index) {
+          const idx = geo.index.array, kept = [];
+          for (let i = 0; i < idx.length; i += 3) {
+            const a = idx[i], b = idx[i + 1], c = idx[i + 2];
+            if (keepVert[a] && keepVert[b] && keepVert[c]) kept.push(a, b, c);
+          }
+          geo.setIndex(kept);
+        }
+        geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        geo.computeVertexNormals();
+      }
+      o.material = new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0x221812 });
+    });
+    root.add(model);
+
+    const getBone = (n) => model.getObjectByName('mixamorig' + n) || model.getObjectByName('mixamorig:' + n);
+    const makeMount = (bone) => {
+      const m = new THREE.Group();
+      m.scale.setScalar(100 / k);
+      bone.add(m);
+      return m;
+    };
+    const spanSegment = (bA, bB, t0, t1, rTop, rBot, mat, sx, sz) => {
+      if (!bA || !bB) return null;
+      const dir = bB.position.clone().multiplyScalar(k / 100);
+      const len = dir.length();
+      if (len < 1e-4) return null;
+      const u = dir.clone().normalize();
+      const start = u.clone().multiplyScalar(len * t0);
+      const end = u.clone().multiplyScalar(len * t1);
+      const mid = start.clone().add(end).multiplyScalar(0.5);
+      const segLen = end.distanceTo(start);
+      const geo = new THREE.CylinderGeometry(rTop, rBot, segLen, 20, 4);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.scale.set(sx || 1, 1, sz || 1);
+      const holder = new THREE.Group();
+      holder.position.copy(mid);
+      holder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), u.clone().negate());
+      holder.add(mesh);
+      const mount = makeMount(bA);
+      mount.add(holder);
+      return { mount, mesh };
+    };
+
+    // Student palette: crisp white school shirt, black shorts, warm skin, white socks, black/green Nanyang sneakers, backpack
+    const shirtMat = new THREE.MeshLambertMaterial({ color: 0xf4f6fc, emissive: 0x383c46 });
+    const placketMat = new THREE.MeshLambertMaterial({ color: 0xdce2ee, emissive: 0x2c3038 });
+    const badgeMat = new THREE.MeshBasicMaterial({ color: 0x1e48b8 });
+    const shortsMat = new THREE.MeshLambertMaterial({ color: 0x161922, emissive: 0x080a0e });
+    const beltMat = new THREE.MeshLambertMaterial({ color: 0x0c0d10 });
+    const buckleMat = new THREE.MeshBasicMaterial({ color: 0xd8dfe8 });
+    const skinMat = new THREE.MeshLambertMaterial({ color: 0xdca882, emissive: 0x241812 });
+    const sockMat = new THREE.MeshLambertMaterial({ color: 0xf2f5fa, emissive: 0x343842 });
+    const shoeMat = new THREE.MeshLambertMaterial({ color: 0x181a20, emissive: 0x08090c });
+    const soleGreenMat = new THREE.MeshLambertMaterial({ color: 0x1d7a42, emissive: 0x0a2e18 });
+    const bagMat = new THREE.MeshLambertMaterial({ color: 0x1e2430, emissive: 0x0a0d14 });
+    const bagPocketMat = new THREE.MeshLambertMaterial({ color: 0x283040, emissive: 0x0e121a });
+    const hairMat = new THREE.MeshLambertMaterial({ color: 0x14151a, emissive: 0x060608 });
+
+    const bSpine1 = getBone('Spine1'), bHips = getBone('Hips'), bNeck = getBone('Neck'), bHead = getBone('Head');
+    r.bones = {
+      lS: getBone('LeftShoulder'), lA: getBone('LeftArm'), lF: getBone('LeftForeArm'),
+      rS: getBone('RightShoulder'), rA: getBone('RightArm'), rF: getBone('RightForeArm'),
+      spine: bSpine1, neck: bNeck
+    };
+
+    // 1. White Thai School Shirt Torso + School Backpack on Spine1
+    if (bSpine1) {
+      const mSpine = makeMount(bSpine1);
+      const torsoGeo = new THREE.CylinderGeometry(0.22, 0.195, 0.66, 28, 12);
+      const tp = torsoGeo.attributes.position;
+      for (let i = 0; i < tp.count; i++) {
+        let tx = tp.getX(i), ty = tp.getY(i), tz = tp.getZ(i);
+        let sh = 1.0;
+        if (ty > 0.22) sh = 1.12 - 0.50 * ((ty - 0.22) / 0.11);
+        else if (ty > 0.08) sh = 1.0 + 0.12 * ((ty - 0.08) / 0.14);
+        tx *= sh * 1.10;
+        tz *= 0.68 * sh;
+        tp.setXYZ(i, tx, ty, tz);
+      }
+      torsoGeo.computeVertexNormals();
+      const torsoMesh = new THREE.Mesh(torsoGeo, shirtMat);
+      torsoMesh.position.set(0, 0.03, -0.01);
+      mSpine.add(torsoMesh);
+
+      // Front button placket + left chest pocket + embroidered school initials
+      const placket = new THREE.Mesh(boxG, placketMat);
+      placket.scale.set(0.032, 0.54, 0.02); placket.position.set(0, 0.02, 0.135);
+      mSpine.add(placket);
+      const pocket = new THREE.Mesh(boxG, placketMat);
+      pocket.scale.set(0.085, 0.095, 0.018); pocket.position.set(0.085, 0.10, 0.132);
+      mSpine.add(pocket);
+      const badge = new THREE.Mesh(boxG, badgeMat);
+      badge.scale.set(0.065, 0.018, 0.018); badge.position.set(0.085, 0.165, 0.132);
+      mSpine.add(badge);
+
+      // 3D Black School Backpack (กระเป๋าเป้นักเรียนสะพายหลัง)
+      const bagMain = new THREE.Mesh(cap(0.145, 0.24), bagMat);
+      bagMain.scale.set(1.25, 1.0, 0.68); bagMain.position.set(0, 0.04, -0.185);
+      mSpine.add(bagMain);
+      const bagPouch = new THREE.Mesh(cap(0.11, 0.12), bagPocketMat);
+      bagPouch.scale.set(1.30, 1.0, 0.55); bagPouch.position.set(0, -0.05, -0.255);
+      mSpine.add(bagPouch);
+      const strip = new THREE.Mesh(boxG, new THREE.MeshBasicMaterial({ color: 0xf1c40f }));
+      strip.scale.set(0.22, 0.028, 0.02); strip.position.set(0, 0.14, -0.275);
+      mSpine.add(strip);
+      [-1, 1].forEach((s) => {
+        const strap = new THREE.Mesh(boxG, bagMat);
+        strap.scale.set(0.042, 0.52, 0.30); strap.position.set(s * 0.135, 0.07, -0.01);
+        mSpine.add(strap);
       });
-      root.add(model);
-      r.mixer = new THREE.AnimationMixer(model);
-      gltf.animations.forEach((c) => { r.actions[c.name] = r.mixer.clipAction(c); });
-      ['Jump', 'Death', 'Sitting'].forEach((n) => {
-        const a = r.actions[n]; if (a) { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; }
+    }
+    if (bNeck && bHead) {
+      spanSegment(bNeck, bHead, -0.25, 1.20, 0.082, 0.076, skinMat, 1, 1);
+      const mNeck = makeMount(bNeck);
+      const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.094, 0.108, 0.055, 20), shirtMat);
+      collar.position.set(0, 0.005, -0.005);
+      mNeck.add(collar);
+    }
+
+    // 2. Short White School Shirt Sleeves + Bare Human Forearms
+    [
+      ['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand'],
+      ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand']
+    ].forEach(([sName, uName, fName, hName]) => {
+      const bS = getBone(sName), bU = getBone(uName), bF = getBone(fName), bH = getBone(hName);
+      if (bS && bU) spanSegment(bS, bU, -0.30, 1.12, 0.122, 0.105, shirtMat, 1, 0.90);
+      if (bU) {
+        const mU = makeMount(bU);
+        mU.add(new THREE.Mesh(new THREE.SphereGeometry(0.105, 14, 10), shirtMat));
+      }
+      // Short white sleeve covering top 56% of upper arm + bare skin lower upper-arm & forearm
+      spanSegment(bU, bF, -0.04, 0.56, 0.104, 0.096, shirtMat, 1, 0.94);
+      spanSegment(bU, bF, 0.52, 1.04, 0.078, 0.070, skinMat, 1, 0.94);
+      if (bF) {
+        const mF = makeMount(bF);
+        mF.add(new THREE.Mesh(new THREE.SphereGeometry(0.070, 14, 10), skinMat));
+      }
+      spanSegment(bF, bH, -0.04, 1.02, 0.068, 0.054, skinMat, 1, 0.94);
+    });
+
+    // 3. Black Thai High School Shorts + Student Belt + White Socks + Nanyang Sneakers
+    if (bHips) {
+      const mHips = makeMount(bHips);
+      const hipMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.215, 0.28, 24), shortsMat);
+      hipMesh.scale.set(1.08, 1, 0.78); hipMesh.position.set(0, -0.02, 0);
+      mHips.add(hipMesh);
+      const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.206, 0.206, 0.048, 24), beltMat);
+      belt.scale.set(1.09, 1, 0.79); belt.position.set(0, 0.09, 0);
+      mHips.add(belt);
+      const buckle = new THREE.Mesh(boxG, buckleMat);
+      buckle.scale.set(0.068, 0.055, 0.025); buckle.position.set(0, 0.09, 0.162);
+      mHips.add(buckle);
+    }
+    [['LeftUpLeg', 'LeftLeg', 'LeftFoot'], ['RightUpLeg', 'RightLeg', 'RightFoot']].forEach(([uLeg, lLeg, foot]) => {
+      const bUL = getBone(uLeg), bLL = getBone(lLeg), bFt = getBone(foot);
+      // Black school shorts down 75% of the thigh + bare skin knee
+      spanSegment(bUL, bLL, -0.08, 0.74, 0.132, 0.118, shortsMat, 1, 1);
+      spanSegment(bUL, bLL, 0.70, 1.02, 0.088, 0.080, skinMat, 1, 1);
+      if (bLL) {
+        const mLL = makeMount(bLL);
+        mLL.add(new THREE.Mesh(new THREE.SphereGeometry(0.080, 14, 10), skinMat));
+      }
+      // Bare upper calf (0..54%) + White pulled-up school sock (52%..100%)
+      spanSegment(bLL, bFt, -0.02, 0.54, 0.078, 0.066, skinMat, 1, 1);
+      spanSegment(bLL, bFt, 0.52, 1.02, 0.070, 0.056, sockMat, 1, 1);
+
+      // Thai Student Black Sneakers with White Toe Cap & Green Nanyang Sole
+      if (bFt) {
+        const mFoot = makeMount(bFt);
+        const ankleSock = new THREE.Mesh(new THREE.SphereGeometry(0.056, 12, 10), sockMat);
+        mFoot.add(ankleSock);
+        const shoeBody = new THREE.Mesh(cap(0.058, 0.14), shoeMat);
+        shoeBody.rotation.x = Math.PI / 2 + 0.10;
+        shoeBody.scale.set(1.12, 1, 0.76);
+        shoeBody.position.set(0, -0.092, 0.065);
+        mFoot.add(shoeBody);
+        const toeCap = new THREE.Mesh(new THREE.SphereGeometry(0.058, 14, 10), sockMat);
+        toeCap.scale.set(1.10, 0.68, 0.95);
+        toeCap.position.set(0, -0.098, 0.175);
+        mFoot.add(toeCap);
+        const foxing = new THREE.Mesh(boxG, sockMat);
+        foxing.scale.set(0.125, 0.026, 0.25);
+        foxing.position.set(0, -0.118, 0.082);
+        mFoot.add(foxing);
+        const greenSole = new THREE.Mesh(boxG, soleGreenMat);
+        greenSole.scale.set(0.128, 0.018, 0.255);
+        greenSole.position.set(0, -0.132, 0.082);
+        mFoot.add(greenSole);
+      }
+    });
+
+    // 4. 3D Thai Student Head & Short Student Haircut (ทรงนักเรียน / รองทรง)
+    if (bHead) {
+      const mHead = makeMount(bHead);
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0, 0.11, 0.015);
+      // Human head sphere
+      const skull = new THREE.Mesh(new THREE.SphereGeometry(0.125, 22, 18), skinMat);
+      skull.scale.set(0.92, 1.12, 0.98);
+      headGroup.add(skull);
+      // Ears
+      [-1, 1].forEach((s) => {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.028, 10, 8), skinMat);
+        ear.scale.set(0.45, 1.1, 0.75); ear.position.set(s * 0.115, -0.005, -0.005);
+        headGroup.add(ear);
       });
-      if (r.actions.Jump) r.actions.Jump.timeScale = 1.35;
-      if (r.actions.Sitting) r.actions.Sitting.timeScale = 2.2;
-      r.play('Sitting', 0);
-    }, () => useFallback());
-  } catch (e) { useFallback(); }
+      // Eyes, eyebrows & nose (visible on menu & front PiP camera)
+      [-1, 1].forEach((s) => {
+        const eyeW = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), sockMat);
+        eyeW.scale.set(1.1, 0.75, 0.5); eyeW.position.set(s * 0.042, 0.015, 0.112);
+        headGroup.add(eyeW);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.010, 8, 8), hairMat);
+        pupil.position.set(s * 0.042, 0.015, 0.121);
+        headGroup.add(pupil);
+        const brow = new THREE.Mesh(boxG, hairMat);
+        brow.scale.set(0.036, 0.009, 0.012); brow.position.set(s * 0.042, 0.038, 0.116);
+        headGroup.add(brow);
+      });
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), skinMat);
+      nose.scale.set(0.85, 1.25, 1.1); nose.position.set(0, -0.008, 0.124);
+      headGroup.add(nose);
+      // Neat black Thai Student Haircut (ทรงนักเรียน/รองทรงสูง)
+      const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.132, 22, 16, 0, Math.PI * 2, 0, 1.72), hairMat);
+      hairTop.scale.set(0.94, 1.08, 1.02); hairTop.position.set(0, 0.012, -0.004);
+      hairTop.rotation.x = -0.14;
+      headGroup.add(hairTop);
+      mHead.add(headGroup);
+    }
+
+    r.mixer = new THREE.AnimationMixer(model);
+    const findClip = (n) => gltf.animations.find((c) => c.name === n) || gltf.animations[0];
+    r.actions.Running = r.mixer.clipAction(findClip('run'));
+    r.actions.Sitting = r.mixer.clipAction(findClip('idle'));
+    r.actions.Jump = r.mixer.clipAction(findClip('sneak_pose'));
+    r.actions.Death = r.mixer.clipAction(findClip('sad_pose'));
+    r.play('Sitting', 0);
+  }, () => useFallback());
   return r;
-}
-// ------------------------------------------------------------ the ghost: ready-made male humanoid (Mixamo "X Bot", glTF)
-// wearing Tan's sculpted face. The model is recoloured into a pale spirit and its head is covered by Tan's head.
-function decodeGLB(b64, ok, fail) {
-  try {
-    const bin = atob(b64), buf = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-    new THREE.GLTFLoader().parse(buf.buffer, '', ok, fail);
-  } catch (e) { fail(e); }
 }
 function makeGhost() {
   const root = new THREE.Group();
@@ -622,14 +825,14 @@ function makeGhost() {
       }
     });
 
-    // 4. Mount Ghost Tan's 3D human head with natural proportions above the neck & collar
+    // 4. Mount Ghost Tan's head with natural human proportions (HS = 1.22)
     const bone = getBone('Head');
     if (bone) {
       const mHead = makeMount(bone);
-      const HS = 0.88;
+      const HS = 1.22;
       const hd = buildHead(true);
       const wobble = new THREE.Group();
-      wobble.position.set(0.0, 0.165, 0.035);
+      wobble.position.set(0.035, 0.14, 0.075);
       wobble.scale.setScalar(HS);
       hd.group.scale.setScalar(1);
       wobble.add(hd.group);
