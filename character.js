@@ -240,7 +240,25 @@ function makeHuman(ghost, noFace) {
 // Model: "RobotExpressive" by Tomás Laulhé (CC0), shipped with the three.js examples.
 function makeRunner() {
   const root = new THREE.Group();
-  const r = { group: root, mixer: null, actions: {}, current: null, fallback: null };
+  // Incense sticks + marigold garland held while praying at the shrine in the menu screen
+  const incense = new THREE.Group();
+  const stickMat = new THREE.MeshLambertMaterial({ color: 0xb8332a });
+  const ashMat = new THREE.MeshBasicMaterial({ color: 0xff5500 });
+  [-0.04, 0, 0.04].forEach((dx, i) => {
+    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.52, 6), stickMat);
+    st.position.set(dx, 0.22, 0); st.rotation.z = (i - 1) * 0.06; incense.add(st);
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.024, 8, 8), ashMat);
+    tip.position.set(dx * 1.3, 0.48, 0); incense.add(tip);
+  });
+  const malai = new THREE.Mesh(
+    new THREE.TorusGeometry(0.11, 0.038, 8, 16),
+    new THREE.MeshBasicMaterial({ color: 0xffb81f })
+  );
+  malai.position.set(0, 0.06, 0.04); malai.rotation.x = Math.PI / 2; incense.add(malai);
+  incense.position.set(0, 1.05, 0.62);
+  root.add(incense);
+
+  const r = { group: root, mixer: null, actions: {}, current: null, fallback: null, incense, bones: {} };
   const useFallback = () => { r.fallback = makeHuman(false, true); root.add(r.fallback.group); };
   r.play = (name, fade) => {
     const a = r.actions[name]; if (!a || r.current === name) return;
@@ -248,6 +266,16 @@ function makeRunner() {
     a.reset().setEffectiveWeight(1).fadeIn(fade || 0.15).play();
     if (prev) prev.fadeOut(fade || 0.15);
     r.current = name;
+  };
+  r.posePray = (t) => {
+    const bow = (Math.sin(t * 4.2) + 1) * 0.5;                 // 0..1 rhythmic Wai bow
+    incense.visible = true;
+    incense.position.set(0, 1.02 - bow * 0.22, 0.58 + bow * 0.12);
+    incense.rotation.set(0.35 + bow * 0.45, 0, 0);
+    if (r.bones.head) r.bones.head.rotation.x -= bow * 0.35;
+    if (r.bones.armL) { r.bones.armL.rotation.z += 0.45; r.bones.armL.rotation.x += 0.35; }
+    if (r.bones.armR) { r.bones.armR.rotation.z -= 0.45; r.bones.armR.rotation.x += 0.35; }
+    return bow;
   };
   try {
     const bin = atob(window.ROBOT_GLB), buf = new Uint8Array(bin.length);
@@ -257,7 +285,12 @@ function makeRunner() {
       const box = new THREE.Box3().setFromObject(model), h = box.max.y - box.min.y;
       const k = 2.6 / h;                                        // ~Subway-sized hero
       model.scale.setScalar(k); model.position.y = -box.min.y * k;
-      model.traverse((o) => { if (o.isMesh && o.material) { o.material.fog = true; } });
+      model.traverse((o) => {
+        if (o.isMesh && o.material) { o.material.fog = true; }
+        if (o.name === 'Head') r.bones.head = o;
+        if (o.name === 'UpperArm.L') r.bones.armL = o;
+        if (o.name === 'UpperArm.R') r.bones.armR = o;
+      });
       root.add(model);
       r.mixer = new THREE.AnimationMixer(model);
       gltf.animations.forEach((c) => { r.actions[c.name] = r.mixer.clipAction(c); });
@@ -266,7 +299,7 @@ function makeRunner() {
       });
       if (r.actions.Jump) r.actions.Jump.timeScale = 1.35;
       if (r.actions.Sitting) r.actions.Sitting.timeScale = 2.2;
-      r.play('Idle', 0);
+      r.play('Sitting', 0);
     }, () => useFallback());
   } catch (e) { useFallback(); }
   return r;
@@ -393,5 +426,5 @@ function poseGhost(h, t) {                     // floating lunge, arms grasping 
   h.head.rotation.z = Math.sin(t * 3.1) * 0.12; h.head.rotation.x = 0.1;
 }
 
-return { makeHuman, makeRunner, makeGhost, poseRun, poseSlide, poseGhost };
+return { tex, makeHuman, makeRunner, makeGhost, poseRun, poseSlide, poseGhost };
 })();

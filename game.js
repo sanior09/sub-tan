@@ -152,7 +152,7 @@ function makeTree() {
   g.add(mk(GEO.cone, MAT.leaf, 1.1, 2.0, 1.1, 0, h + 1.9, 0));
   return g;
 }
-function makeSpiritHouse() {     // ศาลพระภูมิ
+function makeSpiritHouse() {     // ศาลพระภูมิข้างทาง
   const g = new THREE.Group();
   g.add(mk(GEO.cyl, MAT.stone, 0.18, 1.8, 0.18, 0, 0.9, 0));
   g.add(mk(GEO.box, MAT.stone, 1.1, 0.18, 1.1, 0, 1.85, 0));
@@ -162,6 +162,64 @@ function makeSpiritHouse() {     // ศาลพระภูมิ
   const glow = mk(GEO.sph, MAT.lamp, 0.07, 0.07, 0.07, 0, 2.15, 0.44); g.add(glow);
   return g;
 }
+
+// Grand "ศาลเจ้าพ่อตาล" at the starting line (Subway Surfers-style intro scene)
+const shrineGroup = (function makeTanShrine() {
+  const g = new THREE.Group();
+  // stepped stone pedestal + pillar + 3-color sacred cloth (ผ้าสามสี)
+  g.add(mk(GEO.box, MAT.stone, 1.2, 0.22, 1.2, 0, 0.11, 0));
+  g.add(mk(GEO.cyl, MAT.stone, 0.24, 1.35, 0.24, 0, 0.8, 0));
+  g.add(mk(GEO.box, MAT.red, 0.52, 0.35, 0.52, 0, 0.95, 0));
+  g.add(mk(GEO.box, MAT.gold, 0.54, 0.16, 0.54, 0, 1.12, 0));
+  // wide offering platform
+  g.add(mk(GEO.box, MAT.stone, 1.75, 0.16, 1.55, 0, 1.48, 0.05));
+  g.add(mk(GEO.box, MAT.gold, 1.82, 0.06, 1.62, 0, 1.56, 0.05));
+  // ornate red & gold shrine cabin
+  g.add(mk(GEO.box, MAT.red, 1.2, 1.05, 0.95, 0, 2.08, -0.12));
+  [-0.56, 0.56].forEach((x) => g.add(mk(GEO.cyl, MAT.gold, 0.06, 1.05, 0.06, x, 2.08, 0.36)));
+  // double-tiered golden Thai roof
+  g.add(mk(GEO.pyr, MAT.gold, 1.15, 0.55, 1.05, 0, 2.85, -0.08));
+  g.add(mk(GEO.pyr, MAT.gold, 0.82, 0.5, 0.78, 0, 3.25, -0.08));
+  // glowing framed portrait of เจ้าพ่อตาล inside the shrine!
+  g.add(mk(GEO.box, MAT.gold, 0.78, 0.82, 0.05, 0, 2.08, 0.37));
+  const portraitMat = new THREE.MeshBasicMaterial({
+    map: C.tex.ghostFace, transparent: true, fog: false });
+  const portraitBg = mk(GEO.box, new THREE.MeshBasicMaterial({ color: 0x161b2e }), 0.68, 0.72, 0.04, 0, 2.08, 0.38);
+  g.add(portraitBg);
+  const portrait = new THREE.Mesh(new THREE.PlaneGeometry(0.68, 0.72), portraitMat);
+  portrait.position.set(0, 2.08, 0.41); g.add(portrait);
+  // signboard "ศาลเจ้าพ่อตาล"
+  const sc = document.createElement('canvas'); sc.width = 320; sc.height = 72;
+  const sx = sc.getContext('2d');
+  sx.fillStyle = '#3a140c'; sx.fillRect(0, 0, 320, 72);
+  sx.strokeStyle = '#ffcc33'; sx.lineWidth = 6; sx.strokeRect(3, 3, 314, 66);
+  sx.fillStyle = '#ffdd55'; sx.font = 'bold 34px Sarabun, Tahoma, sans-serif';
+  sx.textAlign = 'center'; sx.textBaseline = 'middle'; sx.fillText('ศาลเจ้าพ่อตาล', 160, 38);
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 0.28),
+    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), fog: false }));
+  sign.position.set(0, 2.48, 0.58); g.add(sign);
+  // offerings on the front ledge: red Fanta bottle + green straw, garland, incense pot & candles
+  const redDrink = new THREE.MeshBasicMaterial({ color: 0xff1e27 });
+  const greenStraw = new THREE.MeshBasicMaterial({ color: 0x32ff6a });
+  g.add(mk(GEO.cyl, redDrink, 0.065, 0.28, 0.065, -0.42, 1.72, 0.56));
+  g.add(mk(GEO.cyl, greenStraw, 0.012, 0.22, 0.012, -0.40, 1.90, 0.56));
+  g.add(mk(GEO.cyl, MAT.gold, 0.09, 0.14, 0.09, 0, 1.65, 0.58));  // incense pot
+  [-0.03, 0, 0.03].forEach((dx) => {
+    g.add(mk(GEO.cyl, MAT.red, 0.009, 0.22, 0.009, dx, 1.80, 0.58));
+    g.add(mk(GEO.sph, MAT.lamp, 0.02, 0.02, 0.02, dx, 1.92, 0.58));
+  });
+  [-0.24, 0.24].forEach((dx) => {                                   // candles
+    g.add(mk(GEO.cyl, MAT.gold, 0.022, 0.18, 0.022, dx, 1.66, 0.58));
+    g.add(mk(GEO.sph, MAT.lamp, 0.032, 0.048, 0.032, dx, 1.78, 0.58));
+  });
+  const gar = new THREE.Mesh(GEO.garland, MAT.garland);
+  gar.scale.setScalar(0.5); gar.rotation.x = Math.PI / 2; gar.position.set(0.44, 1.61, 0.56); g.add(gar);
+  const sLight = new THREE.PointLight(0xffb85c, 1.6, 9);
+  sLight.position.set(0, 2.3, 1.2); g.add(sLight);
+  g.scale.setScalar(1.15);
+  scene.add(g);
+  return g;
+})();
 const decor = [];
 let sinceDecor = 0;
 function spawnDecor(z) {
@@ -301,6 +359,9 @@ function reset() {
   lane = 1; px = 0; py = 0; vy = 0; slideT = 0; invuln = 0; stumble = 0; shake = 0;
   sinceRow = 0; rowSpacing = 26; sinceDecor = 0; hbTimer = 0; deadT = 0;
   playerRoot.rotation.set(0, 0, 0); playerRoot.visible = true;
+  shrineGroup.position.set(-1.85, 0, -0.35);
+  shrineGroup.rotation.y = 0.82;
+  shrineGroup.visible = true;
   ghost.group.rotation.set(-0.14, Math.PI, 0); ghostRoot.scale.setScalar(1.3);
   seedDecor();
   // first safe offering strip
@@ -311,6 +372,8 @@ function start() {
   initAudio();
   reset();
   state = 'play';
+  sfx.hit();
+  shake = 0.45;
   ui.menu.style.display = 'none'; ui.over.style.display = 'none';
   ui.hud.style.display = 'block'; ui.pip.style.display = 'block'; ui.hint.style.display = 'block';
   setTimeout(() => (ui.hint.style.display = state === 'play' ? 'none' : ui.hint.style.display), 7000);
@@ -356,7 +419,8 @@ canvas.addEventListener('touchstart', (e) => { const t = e.changedTouches[0]; sw
 canvas.addEventListener('touchend', (e) => { const t = e.changedTouches[0]; swipeEnd(t.clientX, t.clientY); }, { passive: true });
 canvas.addEventListener('mousedown', (e) => swipeStart(e.clientX, e.clientY));
 window.addEventListener('mouseup', (e) => swipeEnd(e.clientX, e.clientY));
-$('startBtn').addEventListener('click', start);
+$('startBtn').addEventListener('click', (e) => { e.stopPropagation(); start(); });
+ui.menu.addEventListener('click', () => { if (state === 'menu') start(); });
 $('retryBtn').addEventListener('click', start);
 
 // ============================================================ update
@@ -364,18 +428,26 @@ function animateRunner(dt, running) {
   const air = py > 0.02, sl = slideT > 0;
   const k = Math.min(1, dt * 14);
   if (player.mixer) {                                   // glTF robot
-    const anim = state === 'dead' ? 'Death' : state === 'menu' ? 'Idle' : air ? 'Jump' : sl ? 'Sitting' : 'Running';
+    const anim = state === 'dead' ? 'Death' : state === 'menu' ? 'Sitting' : air ? 'Jump' : sl ? 'Sitting' : 'Running';
     player.play(anim, anim === 'Death' ? 0.05 : 0.12);
     if (player.actions.Running) player.actions.Running.timeScale = 0.9 + speed * 0.03;
     player.mixer.update(dt);
-    const lean = sl ? 0.35 : state === 'play' && !air ? -0.1 : 0;
-    player.group.rotation.x += (lean - player.group.rotation.x) * k;
+    if (state === 'menu') {
+      const bow = player.posePray(clock);
+      player.group.rotation.x = 0.12 + bow * 0.34;      // bowing deeply toward ศาลเจ้าพ่อตาล
+      player.group.rotation.y = Math.PI + 1.12;         // turned toward the shrine
+    } else {
+      if (player.incense) player.incense.visible = false;
+      const lean = sl ? 0.35 : state === 'play' && !air ? -0.1 : 0;
+      player.group.rotation.x += (lean - player.group.rotation.x) * k;
+      player.group.rotation.y += (Math.PI - player.group.rotation.y) * Math.min(1, dt * 10);
+    }
     return;
   }
   const pf = player.fallback; if (!pf) return;           // faceless fallback human
   if (running && !air) runPhase += dt * (9 + speed * 0.35);
   let bob = 0;
-  if (sl) C.poseSlide(pf); else bob = C.poseRun(pf, runPhase, air);
+  if (sl || state === 'menu') C.poseSlide(pf); else bob = C.poseRun(pf, runPhase, air);
   const lean = sl ? 1.15 : air ? -0.08 : -0.2;
   player.group.rotation.x += (lean - player.group.rotation.x) * k;
   const baseY = sl ? 0.2 : (running && !air ? bob * 0.09 : 0);
@@ -410,6 +482,10 @@ function update(dt) {
 
     // world scroll
     groundTex.offset.y += dz / CELL;
+    if (shrineGroup.visible) {
+      shrineGroup.position.z += dz;
+      if (shrineGroup.position.z > 14) shrineGroup.visible = false;
+    }
     sinceDecor += dz; if (sinceDecor > 9) { sinceDecor = 0; spawnDecor(SPAWN_Z); }
     sinceRow += dz; if (sinceRow >= rowSpacing) { sinceRow = 0; spawnRow(); }
 
@@ -459,13 +535,17 @@ function update(dt) {
     if (deadT > 1.9 && ui.over.style.display !== 'flex') ui.over.style.display = 'flex';
     if (deadT > 0.05) ui.flash.style.opacity = Math.max(0, ui.flash.style.opacity - dt * 2);
   } else {
-    // menu: idle demo
-    groundTex.offset.y += dt * 1.2;
-    gap = 6.2 + Math.sin(clock) * 0.6;
+    // menu: Subway Surfers-style shrine prayer intro (world stands still until player taps Start)
+    gap = GHOST_START_GAP;
   }
 
   // ----- player pose
-  playerRoot.position.set(px, py, 0);
+  if (state === 'menu') {
+    playerRoot.position.set(0.68, 0, 0.65);
+    playerRoot.rotation.set(0, 0, 0);
+  } else {
+    playerRoot.position.set(px, py, 0);
+  }
   animateRunner(dt, state === 'play');
   if (state === 'play') {
     const blink = invuln > 0 && Math.floor(clock * 20) % 2 === 0;
@@ -477,22 +557,31 @@ function update(dt) {
   } else player.group.visible = true;
 
   // ----- ghost pose
-  let targetGz = gap;
-  if (state === 'dead') targetGz = 3.4;
-  gz += (targetGz - gz) * Math.min(1, dt * (state === 'dead' ? 14 : 6.5));
-  gx += (px - gx) * Math.min(1, dt * 6.0);
-  const bob = 0.35 + Math.sin(clock * 4.5) * 0.22;
-  ghostRoot.position.set(gx + Math.sin(clock * 2.0) * 0.45, bob, gz);
-  ghostRoot.rotation.z = Math.sin(clock * 2.1) * 0.06;
   const flick = 0.93 + Math.sin(clock * 23) * 0.04 + (Math.random() < 0.04 ? -0.25 : 0);
   ghost.mats.forEach((m) => { m.opacity = flick; });
-  if (state === 'dead') {
-    ghost.group.rotation.y += (0 - ghost.group.rotation.y) * Math.min(1, dt * 14);   // turn to face the player cam
-    ghost.group.rotation.x += (-0.02 - ghost.group.rotation.x) * Math.min(1, dt * 10);
-    const s = 1.3 + Math.min(1, deadT * 2) * 0.9; ghostRoot.scale.setScalar(s);
-    ghostRoot.position.y = 0.8;
+  if (state === 'menu') {
+    // Ghost Tan haunts beside/behind ศาลเจ้าพ่อตาล, peeking out while the robot prays!
+    ghostRoot.position.set(-3.05 + Math.sin(clock * 1.4) * 0.12, 0.28 + Math.sin(clock * 2.6) * 0.12, 0.25);
+    ghostRoot.rotation.z = -0.12 + Math.sin(clock * 1.8) * 0.05;
+    ghost.group.rotation.set(-0.04, 0.72, 0);
+    ghostRoot.scale.setScalar(1.18);
   } else {
-    ghostRoot.scale.setScalar(1.3);
+    let targetGz = gap;
+    if (state === 'dead') targetGz = 3.4;
+    gz += (targetGz - gz) * Math.min(1, dt * (state === 'dead' ? 14 : 6.5));
+    gx += (px - gx) * Math.min(1, dt * 6.0);
+    const bob = 0.35 + Math.sin(clock * 4.5) * 0.22;
+    ghostRoot.position.set(gx + Math.sin(clock * 2.0) * 0.45, bob, gz);
+    ghostRoot.rotation.z = Math.sin(clock * 2.1) * 0.06;
+    if (state === 'dead') {
+      ghost.group.rotation.y += (0 - ghost.group.rotation.y) * Math.min(1, dt * 14);   // turn to face the player cam
+      ghost.group.rotation.x += (-0.02 - ghost.group.rotation.x) * Math.min(1, dt * 10);
+      const s = 1.3 + Math.min(1, deadT * 2) * 0.9; ghostRoot.scale.setScalar(s);
+      ghostRoot.position.y = 0.8;
+    } else {
+      ghost.group.rotation.set(-0.14, Math.PI, 0);
+      ghostRoot.scale.setScalar(1.3);
+    }
   }
   ghost.update(dt, clock);
   ghostLight.position.set(ghostRoot.position.x, 2, ghostRoot.position.z - 1);
@@ -504,8 +593,28 @@ function update(dt) {
   const ox = (Math.random() - 0.5) * sh * 0.5, oy = (Math.random() - 0.5) * sh * 0.5;
   shake = Math.max(0, shake - dt * 2.2);
   const cx = px * 0.65;
-  mainCam.position.set(cx + ox, 4.0 + oy + py * 0.3, 6.8);
-  mainCam.lookAt(cx, 1.5 + py * 0.3, -9);
+  const introPos = { x: 2.15 + Math.sin(clock * 0.8) * 0.08, y: 2.35 + Math.cos(clock * 0.9) * 0.05, z: 3.85 };
+  const introLook = { x: -0.85, y: 1.85, z: -0.05 };
+  if (state === 'menu') {
+    mainCam.position.set(introPos.x, introPos.y, introPos.z);
+    mainCam.lookAt(introLook.x, introLook.y, introLook.z);
+  } else {
+    // smooth Subway Surfers camera swoop from shrine intro to chase view over first 0.65s
+    const u = state === 'play' ? Math.min(1, tPlay / 0.65) : 1;
+    const e = 1 - Math.pow(1 - u, 3);
+    const tx = cx + ox, ty = 4.0 + oy + py * 0.3, tz = 6.8;
+    const lx = cx, ly = 1.5 + py * 0.3, lz = -9;
+    mainCam.position.set(
+      introPos.x + (tx - introPos.x) * e,
+      introPos.y + (ty - introPos.y) * e,
+      introPos.z + (tz - introPos.z) * e
+    );
+    mainCam.lookAt(
+      introLook.x + (lx - introLook.x) * e,
+      introLook.y + (ly - introLook.y) * e,
+      introLook.z + (lz - introLook.z) * e
+    );
+  }
   pipCam.position.set(px * 0.9 + 1.05 + ox * 0.3, 2.35 + oy * 0.3 + py * 0.4, -3.6);
   pipCam.lookAt(px + 0.15, 2.15 + py * 0.3, 5.2);
 
@@ -539,8 +648,8 @@ function resize() {
 window.addEventListener('resize', resize); resize();
 
 function render() {
-  // hide ghost in main rear camera while running so its back doesn't block the track (still visible on jumpscare!)
-  ghostRoot.visible = (state === 'dead');
+  // show ghost in main camera during the menu shrine intro and on jumpscare; hide while running so its back doesn't block the track
+  ghostRoot.visible = (state !== 'play');
   renderer.setViewport(0, 0, W, H); renderer.setScissor(0, 0, W, H);
   renderer.render(scene, mainCam);
   ghostRoot.visible = true;
