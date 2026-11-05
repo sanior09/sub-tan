@@ -424,15 +424,44 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'enter' && state !== 'play' && (state === 'menu' || ui.over.style.display === 'flex')) start();
 });
 let touch = null;
-function swipeStart(x, y) { touch = { x, y }; }
+function swipeStart(x, y) { touch = { x, y, done: false }; }
+function swipeMove(x, y) {
+  if (!touch || touch.done) return;
+  const dx = x - touch.x, dy = y - touch.y;
+  if (Math.abs(dx) < 22 && Math.abs(dy) < 22) return;
+  touch.done = true;
+  if (Math.abs(dx) > Math.abs(dy)) moveLane(dx > 0 ? 1 : -1);
+  else if (dy < 0) jump();
+  else slide();
+}
 function swipeEnd(x, y) {
   if (!touch) return;
-  const dx = x - touch.x, dy = y - touch.y; touch = null;
-  if (Math.abs(dx) < 24 && Math.abs(dy) < 24) { jump(); return; }
-  if (Math.abs(dx) > Math.abs(dy)) moveLane(dx > 0 ? 1 : -1); else if (dy < 0) jump(); else slide();
+  const wasDone = touch.done;
+  const dx = x - touch.x, dy = y - touch.y;
+  touch = null;
+  if (wasDone) return;
+  if (Math.abs(dx) < 22 && Math.abs(dy) < 22) { jump(); return; }
+  if (Math.abs(dx) > Math.abs(dy)) moveLane(dx > 0 ? 1 : -1);
+  else if (dy < 0) jump();
+  else slide();
 }
-canvas.addEventListener('touchstart', (e) => { const t = e.changedTouches[0]; swipeStart(t.clientX, t.clientY); }, { passive: true });
-canvas.addEventListener('touchend', (e) => { const t = e.changedTouches[0]; swipeEnd(t.clientX, t.clientY); }, { passive: true });
+window.addEventListener('touchmove', (e) => {
+  if (state === 'play') e.preventDefault();
+  if (e.changedTouches && e.changedTouches[0]) {
+    const t = e.changedTouches[0];
+    swipeMove(t.clientX, t.clientY);
+  }
+}, { passive: false });
+canvas.addEventListener('touchstart', (e) => {
+  if (state === 'play') e.preventDefault();
+  const t = e.changedTouches[0];
+  swipeStart(t.clientX, t.clientY);
+}, { passive: false });
+canvas.addEventListener('touchend', (e) => {
+  if (state === 'play') e.preventDefault();
+  const t = e.changedTouches[0];
+  swipeEnd(t.clientX, t.clientY);
+}, { passive: false });
 canvas.addEventListener('mousedown', (e) => swipeStart(e.clientX, e.clientY));
 window.addEventListener('mouseup', (e) => swipeEnd(e.clientX, e.clientY));
 $('startBtn').addEventListener('click', (e) => { e.stopPropagation(); start(); });
