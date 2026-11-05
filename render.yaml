@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: sub-tan-game
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: .
