@@ -385,15 +385,12 @@ function makeGhost() {
     root.add(model);
     root.updateMatrixWorld(true);
 
-    // Helper: create a world-aligned (1 unit = 1 world meter) mount on any Mixamo bone
-    const qModel = new THREE.Quaternion(); model.getWorldQuaternion(qModel);
+    // Helper: create a local mount on any Mixamo bone where 1 unit = 1 scaled model meter
+    // (100% immune to world rotation/scale of ghost.group or ghostRoot!)
     const getBone = (n) => model.getObjectByName('mixamorig' + n) || model.getObjectByName('mixamorig:' + n);
     const makeMount = (bone) => {
-      const qB = new THREE.Quaternion(), sB = new THREE.Vector3();
-      bone.getWorldQuaternion(qB); bone.getWorldScale(sB);
       const m = new THREE.Group();
-      m.quaternion.copy(qModel.clone().invert().multiply(qB).invert());
-      m.scale.setScalar(1 / sB.x);
+      m.scale.setScalar(100 / k);
       bone.add(m);
       return m;
     };
@@ -407,13 +404,12 @@ function makeGhost() {
     const skinMat = new THREE.MeshLambertMaterial({
       color: 0xcc9e7a, emissive: 0x1e1612, fog: false });
 
-    // Helper: span a smooth cylinder/limb between boneA and boneB in rest pose
+    // Helper: span a cylinder directly in bA's local space from (0,0,0) to child bone bB.position
     const spanLimb = (bA, bB, rTop, rBot, mat, padTop, padBot, sx, sz) => {
       if (!bA || !bB) return null;
-      const pA = new THREE.Vector3(), pB = new THREE.Vector3();
-      bA.getWorldPosition(pA); bB.getWorldPosition(pB);
-      const dir = pB.clone().sub(pA);
+      const dir = bB.position.clone().multiplyScalar(k / 100);
       const len = dir.length();
+      if (len < 1e-4) return null;
       const u = dir.clone().normalize();
       const start = u.clone().multiplyScalar(-(padTop || 0));
       const end = u.clone().multiplyScalar(len + (padBot || 0));
@@ -433,49 +429,58 @@ function makeGhost() {
     };
 
     // 1. Smooth Human Torso in Real Photo White Button-Up Shirt (Spine1)
-    const bSpine1 = getBone('Spine1'), bHips = getBone('Hips'), bNeck = getBone('Neck');
+    const bSpine1 = getBone('Spine1'), bHips = getBone('Hips'), bNeck = getBone('Neck'), bHead = getBone('Head');
     if (bSpine1) {
       const mSpine = makeMount(bSpine1);
-      const torsoGeo = new THREE.CylinderGeometry(0.245, 0.215, 0.78, 32, 14);
+      const torsoGeo = new THREE.CylinderGeometry(0.24, 0.215, 0.72, 32, 16);
       torsoGeo.rotateY(Math.PI);
       const tp = torsoGeo.attributes.position;
       for (let i = 0; i < tp.count; i++) {
         let tx = tp.getX(i), ty = tp.getY(i), tz = tp.getZ(i);
-        // Natural male flat chest & broad shoulders (no robot armor grooves!)
-        const shoulder = ty > 0.15 ? 1.0 + 0.18 * ((ty - 0.15) / 0.24) : 1.0;
-        const hem = ty < -0.25 ? 1.05 : 1.0;
+        // Taper top smoothly into the neck/shoulders so no flat edge sticks out under the chin
+        let shoulder = 1.0;
+        if (ty > 0.26) {
+          shoulder = 1.14 - 0.55 * ((ty - 0.26) / 0.10);
+        } else if (ty > 0.10) {
+          shoulder = 1.0 + 0.14 * ((ty - 0.10) / 0.16);
+        }
+        const hem = ty < -0.22 ? 1.05 : 1.0;
         tx *= shoulder * hem * 1.12;
-        tz *= 0.72 * hem;
+        tz *= 0.70 * shoulder * hem;
         tp.setXYZ(i, tx, ty, tz);
       }
       torsoGeo.computeVertexNormals();
       const torsoMesh = new THREE.Mesh(torsoGeo, shirtMat);
-      torsoMesh.position.set(0, 0.04, 0.01);
+      torsoMesh.position.set(0, 0.03, -0.015);
       mSpine.add(torsoMesh);
     }
-    if (bNeck) {
+    if (bNeck && bHead) {
+      spanLimb(bNeck, bHead, 0.092, 0.084, skinMat, 0.04, 0.03, 1, 1);
       const mNeck = makeMount(bNeck);
-      const neckMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.095, 0.18, 18), skinMat);
-      neckMesh.position.set(0, 0.04, 0);
-      mNeck.add(neckMesh);
-      const collarMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.13, 0.09, 20), sleeveMat);
-      collarMesh.position.set(0, -0.02, 0.005);
+      const collarMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.102, 0.115, 0.055, 20), sleeveMat);
+      collarMesh.position.set(0, 0.01, -0.005);
       mNeck.add(collarMesh);
     }
 
-    // 2. Smooth Long White Shirt Sleeves (covering shoulders, upper arms, elbows, and forearms)
-    [['LeftArm', 'LeftForeArm', 'LeftHand'], ['RightArm', 'RightForeArm', 'RightHand']].forEach(([uName, fName, hName]) => {
-      const bU = getBone(uName), bF = getBone(fName), bH = getBone(hName);
+    // 2. Smooth Long White Shirt Sleeves (bridging Shoulder -> UpperArm -> ForeArm -> Hand seamlessly!)
+    [
+      ['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand'],
+      ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand']
+    ].forEach(([sName, uName, fName, hName]) => {
+      const bS = getBone(sName), bU = getBone(uName), bF = getBone(fName), bH = getBone(hName);
+      if (bS && bU) {
+        spanLimb(bS, bU, 0.135, 0.114, sleeveMat, 0.05, 0.02, 1, 0.90);
+      }
       if (bU) {
         const mU = makeMount(bU);
-        mU.add(new THREE.Mesh(new THREE.SphereGeometry(0.115, 16, 12), sleeveMat));
+        mU.add(new THREE.Mesh(new THREE.SphereGeometry(0.114, 16, 12), sleeveMat));
       }
       if (bF) {
         const mF = makeMount(bF);
-        mF.add(new THREE.Mesh(new THREE.SphereGeometry(0.098, 16, 12), sleeveMat));
+        mF.add(new THREE.Mesh(new THREE.SphereGeometry(0.096, 16, 12), sleeveMat));
       }
-      spanLimb(bU, bF, 0.112, 0.096, sleeveMat, 0.02, 0.02, 1, 0.94);
-      spanLimb(bF, bH, 0.094, 0.074, sleeveMat, 0.02, 0.01, 1, 0.94);
+      spanLimb(bU, bF, 0.112, 0.095, sleeveMat, 0.01, 0.01, 1, 0.94);
+      spanLimb(bF, bH, 0.094, 0.072, sleeveMat, 0.01, 0.0, 1, 0.94);
     });
 
     // 3. Smooth Draped Royal-Blue Silk Chong Kraben (Hips + LeftUpLeg + RightUpLeg down past knees!)
@@ -485,17 +490,16 @@ function makeGhost() {
       hipGeo.rotateY(Math.PI);
       const hipMesh = new THREE.Mesh(hipGeo, chongMat);
       hipMesh.scale.set(1.12, 1, 0.82);
-      hipMesh.position.set(0, -0.02, 0.01);
+      hipMesh.position.set(0, -0.02, 0.0);
       mHips.add(hipMesh);
     }
-    [['LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToe_End'], ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToe_End']].forEach(([uLeg, lLeg, foot, toe]) => {
-      const bUL = getBone(uLeg), bLL = getBone(lLeg), bFt = getBone(foot), bToe = getBone(toe);
+    [['LeftUpLeg', 'LeftLeg', 'LeftFoot'], ['RightUpLeg', 'RightLeg', 'RightFoot']].forEach(([uLeg, lLeg, foot]) => {
+      const bUL = getBone(uLeg), bLL = getBone(lLeg), bFt = getBone(foot);
       if (bUL && bLL) {
-        // Billowy Chong Kraben leg extending 0.22m past the knee joint so the knee is completely covered in blue silk!
-        const pA = new THREE.Vector3(), pB = new THREE.Vector3();
-        bUL.getWorldPosition(pA); bLL.getWorldPosition(pB);
-        const len = pB.distanceTo(pA) + 0.24;
-        const cGeo = new THREE.CylinderGeometry(0.165, 0.105, len, 28, 14);
+        // Billowy Chong Kraben leg extending past the knee joint in local bone units
+        const legLen = bLL.position.clone().multiplyScalar(k / 100).length();
+        const len = legLen + 0.18;
+        const cGeo = new THREE.CylinderGeometry(0.165, 0.108, len, 28, 14);
         cGeo.rotateY(Math.PI);
         const cp = cGeo.attributes.position;
         for (let i = 0; i < cp.count; i++) {
@@ -503,47 +507,61 @@ function makeGhost() {
           const nt = (cy + len / 2) / len; // 0 at bottom (below knee), 1 at top (hip)
           const ang = Math.atan2(cz, cx);
           const pleat = 1.0 + 0.08 * Math.sin(ang * 6 + nt * 8);
-          const puff = (0.75 + 0.62 * Math.sin(Math.pow(nt, 0.65) * Math.PI)) * pleat;
-          tp_set: { cx *= puff * 1.08; cz *= puff * 1.02; }
+          const puff = (0.76 + 0.62 * Math.sin(Math.pow(nt, 0.65) * Math.PI)) * pleat;
+          cx *= puff * 1.08;
+          cz *= puff * 1.02;
           cp.setXYZ(i, cx, cy, cz);
         }
         cGeo.computeVertexNormals();
         const cMesh = new THREE.Mesh(cGeo, chongMat);
-        cMesh.position.set(0, -len / 2 + 0.04, 0.01);
+        cMesh.position.set(0, -len / 2 + 0.04, 0.0);
         const mUL = makeMount(bUL);
         mUL.add(cMesh);
+        // Knee puff sphere so the knee bend stays covered in blue silk
+        const mLL = makeMount(bLL);
+        const kneePuff = new THREE.Mesh(new THREE.SphereGeometry(0.125, 16, 12), chongMat);
+        kneePuff.position.set(0, 0.02, 0);
+        mLL.add(kneePuff);
       }
-      // Smooth bare human lower calf & ankle (spanning knee to foot, bridging the ankle seamlessly)
-      spanLimb(bLL, bFt, 0.072, 0.044, skinMat, -0.10, 0.04, 1, 1);
-      // Real sculpted bare human foot with heel, arch, and 5 distinct bare toes (NO shoes!)
+      // Smooth bare human lower calf & ankle (from inside the Chong Kraben cuff down to the exact ankle bFt)
+      spanLimb(bLL, bFt, 0.082, 0.050, skinMat, -0.10, 0.0, 1, 1);
+      // Real sculpted bare human foot aligned to LeftFoot -> LeftToeBase (sole at y = -0.128, toes at z = +0.16..+0.23)
       if (bFt) {
         const mFoot = makeMount(bFt);
         const isLeft = /Left/i.test(foot);
         const inSign = isLeft ? -1 : 1; // inner side where the big toe sits
-        // Heel + flat bare foot arch
-        const heel = new THREE.Mesh(new THREE.SphereGeometry(0.044, 14, 10), skinMat);
-        heel.position.set(0, -0.055, -0.01);
-        heel.scale.set(0.95, 0.85, 1.15);
+        // Ankle & heel sphere
+        const ankle = new THREE.Mesh(new THREE.SphereGeometry(0.050, 14, 10), skinMat);
+        mFoot.add(ankle);
+        const heel = new THREE.Mesh(new THREE.SphereGeometry(0.052, 14, 10), skinMat);
+        heel.position.set(0, -0.092, -0.022);
+        heel.scale.set(0.95, 0.75, 1.18);
         mFoot.add(heel);
-        const arch = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.046, 0.17, 16), skinMat);
-        arch.rotation.x = Math.PI / 2 + 0.14;
-        arch.scale.set(1.18, 1, 0.58);
-        arch.position.set(0, -0.068, 0.075);
+        // Sloped human instep/arch from ankle/heel (0, -0.075, -0.01) to ball of foot (0, -0.112, +0.155)
+        const arch = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.058, 0.185, 18), skinMat);
+        arch.rotation.x = Math.PI / 2 + 0.22;
+        arch.scale.set(1.22, 1, 0.62);
+        arch.position.set(0, -0.094, 0.072);
         mFoot.add(arch);
-        // 5 bare toes (big toe -> pinky toe)
+        // Wide ball of the foot pad
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(0.056, 14, 10), skinMat);
+        ball.scale.set(1.28, 0.46, 0.85);
+        ball.position.set(0, -0.112, 0.155);
+        mFoot.add(ball);
+        // 5 bare toes extending forward from the ball of the foot (NO shoes!)
         const nailMat = new THREE.MeshLambertMaterial({ color: 0xe6bfb0, emissive: 0x1e1612, fog: false });
         for (let t = 0; t < 5; t++) {
-          const rToe = t === 0 ? 0.016 : 0.013 - t * 0.0012;
-          const lenToe = t === 0 ? 0.046 : 0.038 - t * 0.003;
-          const tx = inSign * (0.034 - t * 0.017);
-          const tz = 0.165 - t * 0.007;
+          const rToe = t === 0 ? 0.018 : 0.0145 - t * 0.0012;
+          const lenToe = t === 0 ? 0.050 : 0.040 - t * 0.003;
+          const tx = inSign * (0.042 - t * 0.021);
+          const tz = 0.195 - t * 0.008;
           const toeMesh = new THREE.Mesh(cap(rToe, lenToe), skinMat);
           toeMesh.rotation.x = Math.PI / 2;
-          toeMesh.position.set(tx, -0.082, tz);
+          toeMesh.position.set(tx, -0.114, tz);
           mFoot.add(toeMesh);
           const nail = new THREE.Mesh(new THREE.SphereGeometry(rToe * 0.75, 8, 6), nailMat);
           nail.scale.set(1, 0.35, 1.1);
-          nail.position.set(tx, -0.082 + rToe * 0.7, tz + lenToe * 0.45);
+          nail.position.set(tx, -0.114 + rToe * 0.72, tz + lenToe * 0.45);
           mFoot.add(nail);
         }
       }
