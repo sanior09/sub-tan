@@ -1,93 +1,200 @@
 <div align="center">
 
-<a href="https://sub-tan.onrender.com">
-  <img src="Image/og-banner.jpg" width="100%" alt="ผีตาลหลอน - เกมวิ่งหนีผีแก้บน 3D">
+<a href="https://sub-tan.onrender.com" target="_blank">
+  <img src="Image/og-banner.jpg" width="100%" alt="ผีตาลหลอน - 3D Endless Runner Game" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
 </a>
 
-# 👻 ผีตาลหลอน (Sub-Tan 3D Endless Runner)
-### *"บนเเล้วต้องเเก้นะครับ...."* 🙏🌼🏃‍♂️💨
-
-[![Live Demo](https://img.shields.io/badge/🎮_เล่นเกมออนไลน์-sub--tan.onrender.com-ff2b4a?style=for-the-badge&logo=render&logoColor=white)](https://sub-tan.onrender.com)
-[![Three.js](https://img.shields.io/badge/3D_Engine-Three.js_r147-black?style=for-the-badge&logo=three.js&logoColor=white)](https://threejs.org/)
-[![Platform](https://img.shields.io/badge/Platform-PC_%26_Mobile_Web-42e695?style=for-the-badge)](https://sub-tan.onrender.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-ffd24a?style=for-the-badge)](./LICENSE)
-[![Owner](https://img.shields.io/badge/Owner-%40sanior09-8a2be2?style=for-the-badge&logo=github)](https://github.com/sanior09)
+# 👻 ผีตาลหลอน (Sub-Tan)
+### *3D Endless Runner Web Game — "บนเเล้วต้องเเก้นะครับ...."* 🙏🌼🏃‍♂️💨
 
 <p align="center">
-  <b>เกมวิ่งหนีผี 3 มิติสุดหลอนสไตล์ Subway Surfers บนเว็บเบราว์เซอร์</b><br>
-  เมื่อคุณไปจุดธูปบนบานต่อหน้า <b>"ศาลเจ้าพ่อตาล"</b> แล้วได้ของสมหวัง แต่ดันชิ่งหนีไม่ยอมเอาพวงมาลัยมาแก้บน!<br>
-  งานนี้ <b>เจ้าพ่อตาล</b> เลยต้องออกวิ่งไล่ทวงพวงมาลัยด้วยตัวเองแบบติดขอบจอ!
+  <a href="https://sub-tan.onrender.com" target="_blank">
+    <img src="https://img.shields.io/badge/▶_PLAY_NOW-แตะเพื่อเข้าเล่นเกมฟรี-ff2b4a?style=for-the-badge&logo=googlechrome&logoColor=white" height="38" alt="เข้าเล่นเกมออนไลน์" />
+  </a>
 </p>
 
----
+[![Live Demo](https://img.shields.io/badge/🎮_Live_Demo-sub--tan.onrender.com-00c7b7?style=for-the-badge&logo=render&logoColor=white)](https://sub-tan.onrender.com)
+[![Engine](https://img.shields.io/badge/Engine-Three.js_r147-000000?style=for-the-badge&logo=three.js&logoColor=white)](https://threejs.org/)
+[![Graphics](https://img.shields.io/badge/Graphics-WebGL_3D-990000?style=for-the-badge&logo=webgl&logoColor=white)](https://get.webgl.org/)
+[![Audio](https://img.shields.io/badge/Audio-Web_Audio_API-ff9800?style=for-the-badge)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
+[![Platform](https://img.shields.io/badge/Platform-Desktop_%7C_Mobile_Web-42b883?style=for-the-badge)](https://sub-tan.onrender.com)
+[![License](https://img.shields.io/badge/License-MIT-ffd24a?style=for-the-badge)](./LICENSE)
+[![Creator](https://img.shields.io/badge/Creator-%40sanior09-8a2be2?style=for-the-badge&logo=github)](https://github.com/sanior09)
 
-### 🚀 [👉 คลิกที่นี่เพื่อเข้าเล่นเกมทันที (Play Live on Render)](https://sub-tan.onrender.com)
-*(รองรับทั้งคอมพิวเตอร์ และมือถือ iOS / Android ไม่ต้องติดตั้งแอป)*
+<br />
+
+<p align="center" style="max-width: 720px; font-size: 16px; line-height: 1.6;">
+  <b>ผีตาลหลอน</b> คือเกมวิ่งหนีผี 3 มิติบนเว็บเบราว์เซอร์ สไตล์ <i>Subway Surfers</i><br>
+  ที่หยิบยกวัฒนธรรมความเชื่อพื้นบ้านไทยเรื่อง <b>"การบนบานศาลกล่าว"</b> มาสร้างเป็นเกมแอ็กชันสุดระทึกและฮาแบบจัดเต็ม!<br>
+  เมื่อคุณไปก้มกราบขอพรหน้า <b>"ศาลเจ้าพ่อตาล"</b> จนสมหวังในสิ่งที่ขอ แต่ดันชิ่งหนีไม่ยอมเอาพวงมาลัยไปแก้บนตามสัญญา...<br>
+  งานนี้ <b>เจ้าพ่อตาล</b> เลยต้องกระโดดออกจากศาล สับตีนแตกวิ่งไล่ทวงแก้บนด้วยตัวเองแบบหายใจรดต้นคอ!
+</p>
 
 </div>
 
 ---
 
-## ✨ จุดเด่นของเกม (Key Features)
+## 📸 ภาพตัวอย่างภายในเกม (Gameplay Showcase)
 
-- ⛩️ **ฉากเปิดไหว้ศาลเจ้าพ่อตาล (Subway Surfers Intro):** เริ่มต้นด้วยฉากตัวละครนั่งพนมมือจุดธูปก้มกราบขอพรหน้า **ศาลเจ้าพ่อตาล** พร้อมเครื่องเซ่นไหว้น้ำแดงแฟนต้า พวงมาลัย และผีตาลที่แอบชะโงกหน้าจ้องมองอยู่หลังศาล พอแตะหน้าจอปุ๊บ ตัวละครจะหันหลังสับตีนแตกวิ่งหนีทันที!
-- 📹 **ระบบกล้องหน้าเรียลไทม์ (Picture-in-Picture Front Cam):** หน้าต่างกล้องหน้ามุมขวาบนแสดงภาพผีตาลในชุดสูทนักเรียน VBAC ที่กำลังวิ่งสับขาไล่จี้ตามหลังมาแบบติดๆ พร้อมไฟกะพริบเตือนภัยเมื่อผีตาลเข้าใกล้
-- 🌼 **ระบบเก็บพวงมาลัยแก้บน:** เก็บ **พวงมาลัยดอกมะลิ** ตามทางเพื่อช่วยเพิ่มระยะห่างจากผีตาล หากชนสิ่งกีดขวางผีตาลจะพุ่งเข้ามาประชิดตัวทันที
-- 🔊 **ระบบเสียงสังเคราะห์ Web Audio API 100%:** เสียงฝีเท้า เสียงหัวใจเต้นตึกตักตามระยะห่างของผี เสียงเก็บพวงมาลัย และเสียง Jump Scare สุดสะพรึง สร้างด้วยโค้ดล้วนโดยไม่ต้องโหลดไฟล์เสียงภายนอก
-- 📱 **Cross-Platform (PC & Mobile Ready):** เล่นได้ลื่นไหลทั้งบนคอมพิวเตอร์ (Keyboard) และสมาร์ทโฟน (Touch Swipe)
+<table align="center" width="100%">
+  <tr>
+    <td align="center" width="33%">
+      <img src="Image/preview-intro.jpg" alt="ฉากบนบานหน้าศาล" style="border-radius: 8px; width: 100%; object-fit: cover;" />
+      <br /><br />
+      <b>⛩️ ฉากเปิดไหว้ศาลเจ้าพ่อตาล</b><br>
+      <sub>ก้มกราบขอพรพร้อมเครื่องเซ่นไหว้แฟนต้าแดง พวงมาลัย และผีตาลที่ยืนชะโงกแอบดูอยู่ด้านหลัง</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="Image/preview-gameplay.jpg" alt="ระบบวิ่ง 3 เลนพร้อมกล้องหน้า PiP" style="border-radius: 8px; width: 100%; object-fit: cover;" />
+      <br /><br />
+      <b>🏃‍♂️ วิ่ง 3 เลน & กล้องหน้า PiP</b><br>
+      <sub>หลบสิ่งกีดขวาง เก็บพวงมาลัยดอกมะลิ พร้อมหน้าต่างกล้องหลังตรวจจับการเข้าประชิดตัวแบบเรียลไทม์</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="Image/preview-gameover.jpg" alt="ฉากจบเมื่อผีตาลจับได้" style="border-radius: 8px; width: 100%; object-fit: cover;" />
+      <br /><br />
+      <b>😱 ผีตาลจับได้แล้ว!</b><br>
+      <sub>กระโดดสะดุดจนโดนผีตาลจับพร้อมเสียง Jump Scare หลอนสะพรึง รายงานสถิติระยะทางและจำนวนพวงมาลัย</sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
-## 🎮 วิธีบังคับ (Controls)
+## ✨ จุดเด่นและระบบการเล่น (Key Features)
 
-| การกระทำ (Action) | 💻 คอมพิวเตอร์ (Keyboard) | 📱 มือถือ / แท็บเล็ต (Touch Screen) |
+- ⛩️ **ฉากเปิดเรื่องสุดเข้มข้น (Subway Surfers Cinematic Intro):**
+  - เริ่มต้นเกมด้วยคัตซีนหน้า **ศาลพระภูมิทรงจตุรมุขสีทองคู่** ประดับป้ายชื่อ *"ศาลเจ้าพ่อตาล"* แท่นบูชาหน้าศาลมีกระถางธูปจุดควันโขมง น้ำแดงแฟนต้าพร้อมหลอดดูด เทียนคู่ และพวงมาลัยดอกมะลิสด
+  - ตัวละครเด็กนักเรียนนั่งพนมมือกราบขอพร พอแตะหน้าจอเพื่อเริ่มเกม ตัวละครจะกระโดดหันหลังสับตีนแตกวิ่งหนีทันที!
+
+- 🏃‍♂️ **ตัวละครเอก "เด็กนักเรียนประถมไทย 3D" สุดน่ารัก:**
+  - ดีไซน์ 3D โครงสร้างสัดส่วนการ์ตูนตัวเล็ก สวมเครื่องแบบนักเรียนไทยคอปกขาว กางเกงสีกรมท่า เข็มขัดหัวโลหะ ถุงเท้าขาว และรองเท้านักเรียนนันยาง
+  - ทรงผมกะลาครอบ (Bowl Cut) รอบศีรษะพร้อมปอยผมกระดก และกระเป๋าเป้นักเรียนสะพายหลังสีน้ำเงิน-เหลืองพร้อมพวงกุญแจห้อยกระเป๋า
+  - แอนิเมชันวิ่งแบบ Continuous Loop สมูทไม่มีกระตุก พร้อมการปรับสปีดและจัดท่าทางกลางอากาศตอนกระโดดอย่างเป็นธรรมชาติ
+
+- 👻 **บอส "ผีตาล" 3D แบบเต็มตัว (Full-Body Rigged Skeleton):**
+  - โครงกระดูกมนุษย์ 3 มิติ สวมเสื้อยืดคอกลมสีขาวและกางเกงโจงกระเบนผ้าไหมสีน้ำเงินเข้ม
+  - เทคโนโลยี **Bone-Local Inverse Transform Rigging** ขจัดปัญหาข้อต่อแขนขาหลุดได้อย่างสมบูรณ์แบบ แขนขาแนบสนิทไปตามโครงกระดูกตลอดเวลา
+  - ดวงตาแดงก่ำพร้อมคราบเลือดไหลอาบแก้ม วิ่งสับขาไล่กวดตามผู้เล่นแบบติดๆ
+
+- 📹 **ระบบกล้องส่องหลังแบบเรียลไทม์ (PiP Rearview Camera):**
+  - หน้าต่าง Picture-in-Picture มุมขวาบนทำหน้าที่เป็นกระจกมองหลัง ส่องภาพผีตาลที่กำลังวิ่งไล่กวดมาด้านหลังแบบสดๆ
+  - มีไฟสถานะกระพริบเตือนภัยสีแดง (Alert Pulse) เมื่อผีตาลขยับเข้ามาใกล้ในระยะอันตราย
+
+- 🌼 **ระบบเก็บพวงมาลัยดอกมะลิ & ตัวเร่งสปีด:**
+  - เก็บ **พวงมาลัยดอกมะลิ 3D** ตามเลนวิ่งเพื่อทำแต้มและช่วยทิ้งระยะห่างจากผีตาล
+  - หากวิ่งชนสิ่งกีดขวาง (คานไม้, กล่องไม้, สิ่งกีดขวางริมทาง) ความเร็วจะตกและผีตาลจะวาร์ปพุ่งเข้าประชิดตัวทันที!
+
+- 🔊 **ระบบเสียงสังเคราะห์ Web Audio API 100% (Zero-Asset Audio):**
+  - เสียงฝีเท้าวิ่งสลับซ้าย-ขวา
+  - เสียงหัวใจเต้นตึกตัก (**Dynamic Heartbeat Engine**) ที่จะเร่งจังหวะ BPM ถี่ขึ้นเรื่อยๆ ตามความใกล้ของผีตาล
+  - เสียงกระดิ่งพวงมาลัยใสหวาน และเสียง Jump Scare สังเคราะห์ความถี่ต่ำสุดสะพรึง
+  - **ไม่ต้องโหลดไฟล์ MP3 ภายนอกแม้แต่ไฟล์เดียว** ช่วยให้โหลดเกมติดสปีดทันที
+
+- ⚡ **Zero-Dependency & Pure WebGL:**
+  - โค้ดทั้งหมดรันด้วย Vanilla JavaScript + Three.js
+  - ไม่มี Build Step, ไม่ต้องพึ่งพา Node.js / NPM และเปิดเล่นได้ทันทีแบบ Offline หรือผ่านเบราว์เซอร์
+
+---
+
+## 🎮 วิธีการบังคับ (Game Controls)
+
+รองรับทั้งคีย์บอร์ดคอมพิวเตอร์และระบบสัมผัสบนสมาร์ทโฟน / แท็บเล็ตอย่างสมบูรณ์แบบ:
+
+| การเคลื่อนไหว (Action) | 💻 คอมพิวเตอร์ (Keyboard) | 📱 มือถือ / แท็บเล็ต (Touch Screen) |
 | :--- | :---: | :---: |
-| **เริ่มเกม / วิ่งหนี** | คลิกเมาส์ หรือกด `Space` / `Enter` | แตะที่หน้าจอ |
-| **เบี่ยงซ้าย** | `←` หรือ `A` | ปัดนิ้วไปทางซ้าย (Swipe Left) |
-| **เบี่ยงขวา** | `→` หรือ `D` | ปัดนิ้วไปทางขวา (Swipe Right) |
-| **กระโดดข้ามสิ่งกีดขวาง** | `↑` / `W` / `Space` | ปัดนิ้วขึ้น (Swipe Up) |
-| **สไลด์ลอดคาน** | `↓` หรือ `S` | ปัดนิ้วลง (Swipe Down) |
+| **เริ่มเกม / วิ่งหนี** | `คลิกเมาส์` หรือกด `Spacebar` / `Enter` | `แตะที่หน้าจอ (Tap)` |
+| **โยกหลบซ้าย (Lane Left)** | ปุ่มลูกศร `←` หรือกด `A` | `ปัดนิ้วไปทางซ้าย (Swipe Left)` |
+| **โยกหลบขวา (Lane Right)** | ปุ่มลูกศร `→` หรือกด `D` | `ปัดนิ้วไปทางขวา (Swipe Right)` |
+| **กระโดดข้ามสิ่งกีดขวาง (Jump)** | ปุ่มลูกศร `↑` / `W` / `Spacebar` | `ปัดนิ้วขึ้น (Swipe Up)` |
+| **สไลด์มุดลอดคาน (Slide)** | ปุ่มลูกศร `↓` หรือกด `S` | `ปัดนิ้วลง (Swipe Down)` |
+| **พักเกม / หยุดชั่วคราว (Pause)** | กดปุ่ม `P` หรือคลิกปุ่ม `พักเกม` บนจอ | `แตะปุ่มพักเกม` |
 
 ---
 
-## 🗂️ โครงสร้างโปรเจกต์ (Project Structure)
+## 🗂️ โครงสร้างไฟล์ในโปรเจกต์ (Project Directory)
 
 ```text
 sub-tan/
-├── index.html          # โครงสร้างหน้าเว็บ, HUD, กรอบกล้องหน้า PiP และหน้าจอเริ่ม/จบเกม
-├── game.js             # ระบบเกมหลัก 3D (Three.js), ฉากศาลเจ้าพ่อตาล, ระบบวิ่ง 3 เลน, กล้องคู่ และเสียง WebAudio
-├── character.js        # ระบบสร้างโมเดล 3D ตัวละครนักเรียนไทย และโมเดลผีตาลพร้อมแอนิเมชัน
-├── Image/              # โฟลเดอร์เก็บรูปภาพทั้งหมด (ใบหน้าผีตาล, ศาลพระภูมิ, ต้นไม้, พวงมาลัย, แบนเนอร์ และไอคอน)
-├── robot.js            # โมเดล 3D ตัวละครผู้เล่น (RobotExpressive GLB)
-├── xbot.js             # โมเดล 3D โครงกระดูกมนุษย์สำหรับผีตาลและนักเรียนไทย (Xbot GLB)
-├── lib/                # ไลบรารี Three.js (r147) และ GLTFLoader
-├── render.yaml         # ไฟล์ตั้งค่าสำหรับ Deploy อัตโนมัติบน Render Static Site
-└── LICENSE             # สัญญาอนุญาตการใช้งานแบบ MIT License
+├── index.html          # โครงสร้างหน้าเว็บหลัก, HUD, กรอบกล้อง PiP และระบบเมนู UI
+├── game.js             # เกมลูป 3D, ฉากศาลเจ้าพ่อตาล, ระบบเจนเนอเรตสิ่งกีดขวาง, ฟิสิกส์ และ WebAudio API
+├── character.js        # สถาปัตยกรรมโมเดล 3D: เด็กนักเรียนไทยประถม และผีตาลแบบ Rigged Bones
+├── robot.js            # ไฟล์โมเดล GLB เวกเตอร์ 3D สำรอง
+├── xbot.js             # โครงสร้างกระดูกมนุษย์ 3D (Humanoid Skeleton & Animations)
+├── render.yaml         # ไฟล์คอนฟิกอัตโนมัติสำหรับการ Deploy บน Render Static Site
+├── LICENSE             # ใบอนุญาตการใช้งานโค้ดแบบ MIT License
+├── lib/
+│   ├── three.min.js    # Three.js 3D Engine (r147)
+│   └── GLTFLoader.js   # โมดูลโหลดแอนิเมชันและโครงกระดูก 3D GLTF/GLB
+└── Image/              # แหล่งรวม Asset รูปภาพและเท็กซ์เจอร์ทั้งหมด
+    ├── tan-face.jpg    # ภาพถ่ายใบหน้าต้นฉบับของผีตาล
+    ├── shirt-tex.png   # เท็กซ์เจอร์เสื้อยืดผีตาล
+    ├── chong-tex.png   # เท็กซ์เจอร์โจงกระเบนลายไทยสีน้ำเงิน
+    ├── garland.png     # เท็กซ์เจอร์พวงมาลัยดอกมะลิแก้บน
+    ├── shrine1.png     # ภาพศาลไม้สักทรงไทยโบราณ
+    ├── shrine2.png     # ภาพศาลพระภูมิสีทองยอดแหลม
+    ├── shrine3.png     # ภาพศาลเจ้าพ่อตาลสีทองคู่
+    ├── tree1.png       # เท็กซ์เจอร์ต้นไม้ใบเขียวชอุ่ม
+    ├── tree2.png       # เท็กซ์เจอร์ต้นมะม่วงไทย
+    ├── og-banner.jpg   # แบนเนอร์หลักสำหรับ OpenGraph Social Preview (1200x630)
+    ├── favicon.png     # ไอคอนเว็บ Favicon ขนาด 32x32 / 64x64
+    ├── face.js         # ข้อมูลเท็กซ์เจอร์ใบหน้าและพวงมาลัยแบบ Base64 สำหรับ Standalone Run
+    └── scenery.js      # ข้อมูลเท็กซ์เจอร์ศาลและต้นไม้แบบ Base64 สำหรับ Standalone Run
 ```
 
 ---
 
-## 🛠️ การรันโปรเจกต์บนเครื่อง (Run Locally)
+## 🛠️ วิธีการรันบนเครื่องของคุณ (Local Development)
 
-โปรเจกต์นี้ออกแบบให้ทำงานแบบ **Zero-Dependency Static Web** สามารถเปิดเล่นได้ทันทีโดยไม่ต้องติดตั้งเซิร์ฟเวอร์:
+เนื่องจากโปรเจกต์นี้สร้างขึ้นด้วยสถาปัตยกรรม **Zero-Dependency Static Web** จึงสามารถรันได้ทันทีโดยไม่ต้องรัน `npm install`:
 
-1. **Clone โปรเจกต์ลงเครื่อง:**
+### วิธีที่ 1: ดับเบิลคลิกเปิดไฟล์ได้ทันที (Zero Setup)
+1. โคลนคลังโค้ดลงเครื่อง:
    ```bash
    git clone https://github.com/sanior09/sub-tan.git
    cd sub-tan
    ```
-2. **เปิดเล่นได้ทันที:**
-   ดับเบิลคลิกไฟล์ `index.html` เพื่อเปิดในเว็บเบราว์เซอร์ (Chrome, Edge, Safari, Firefox) ได้เลย!
+2. ดับเบิลคลิกที่ไฟล์ `index.html` เพื่อเปิดเล่นผ่านเบราว์เซอร์คู่ใจ (Chrome, Edge, Safari, Firefox) ได้ทันที!
+
+### วิธีที่ 2: รันผ่าน Local Web Server (แนะนำ)
+หากต้องการทดสอบผ่านเซิร์ฟเวอร์แบบเดียวกับ Production สามารถใช้คำสั่งเบาๆ ผ่าน Command Line / Terminal:
+
+- **ผ่าน Python 3:**
+  ```bash
+  python -m http.server 8080
+  # จากนั้นเปิดเบราว์เซอร์ไปที่ http://localhost:8080
+  ```
+- **ผ่าน Node.js (npx):**
+  ```bash
+  npx serve .
+  ```
+- **ผ่าน VS Code:** คลิกขวาที่ไฟล์ `index.html` แล้วเลือก **"Open with Live Server"**
+
+---
+
+## 🗺️ แผนการพัฒนาในอนาคต (Roadmap)
+
+- [x] ฉากเปิดกราบศาลเจ้าพ่อตาล พร้อมเครื่องเซ่นไหว้ (Subway Surfers Intro)
+- [x] ปรับเปลี่ยนตัวละครผู้เล่นเป็นเด็กนักเรียนไทย 3D ชุดนักเรียนน่ารัก
+- [x] ยกระดับโมเดลศาลพระภูมิและต้นไม้ริมทางเป็นสไตล์ไทยแท้ 3 มิติ
+- [x] เพิ่มปุ่มลัดกลับสู่หน้าเมนูหลักทั้งตอนจบเกมและหน้าต่างพักเกม
+- [ ] 🥤 **ไอเทมพิเศษระหว่างทาง:**
+  - *น้ำแดงแฟนต้า:* ซดแล้วติดสปีดพุ่งทะลวงสิ่งกีดขวางชั่วขณะ
+  - *สายสิญจน์มงคล:* บาเรียคุ้มกัน ชนสิ่งกีดขวางได้ 1 ครั้งโดยความเร็วไม่ตก
+  - *สเก็ตบอร์ดไม้ไผ่:* สเก็ตบอร์ดวิ่งหนีผี หมุนตัวกลางอากาศ 360 องศา
+- [ ] 🏆 **ระบบกระดานผู้นำออนไลน์ (Global Leaderboard):** บันทึกคะแนนและระยะทางสูงสุด
+- [ ] 🎭 **ระบบปลดล็อกสกินตัวละคร:** เช่น สกินชุดลูกเสือ, สกินชุดไทยโบราณ, สกินเด็กแว้น
 
 ---
 
 ## 📜 ลิขสิทธิ์และความเป็นเจ้าของ (Ownership & License)
 
-- **เจ้าของโปรเจกต์และผู้พัฒนา (Creator & Copyright Holder):** [**@sanior09**](https://github.com/sanior09)
-- **สัญญาอนุญาต (License):** โปรเจกต์นี้อยู่ภายใต้สัญญาอนุญาตแบบ [**MIT License**](./LICENSE) — สามารถนำไปศึกษา ดัดแปลง หรือต่อยอดได้โดยต้องคงชื่อเจ้าของลิขสิทธิ์เดิม (`Copyright (c) 2026 sanior09`) ไว้ตามเงื่อนไขของสัญญาอนุญาต
+- **ผู้สร้างและพัฒนาโปรเจกต์ (Creator & Developer):** [**@sanior09**](https://github.com/sanior09)
+- **สัญญาอนุญาต (License):** เผยแพร่ภายใต้สัญญาอนุญาตแบบ [**MIT License**](./LICENSE) — สามารถนำไปศึกษา ดัดแปลง หรือต่อยอดเชิงสร้างสรรค์ได้ตามอัธยาศัย โดยระบุเครดิตเจ้าของโค้ดเดิม
+
+<br />
 
 <div align="center">
-  <br>
-  <b>⚠️ คำเตือน: บนอะไรไว้ อย่าลืมเอาพวงมาลัยไปแก้บนนะครับ.....</b>
+  <sub>Made with ❤️, Thai Wit & Three.js WebGL Engine</sub><br />
+  <b>⚠️ คำเตือนจากเจ้าพ่อตาล: บนอะไรไว้ อย่าลืมเอาพวงมาลัยไปแก้บนนะครับ.....</b>
 </div>
-
