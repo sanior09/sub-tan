@@ -411,7 +411,8 @@ function jump() {
 }
 function slide() {
   if (state !== 'play') return;
-  if (py > 0.05) vy = -16; else slideT = 0.75;
+  if (py > 0.05) vy = -22;
+  slideT = 0.75;
 }
 window.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
@@ -441,20 +442,26 @@ $('retryBtn').addEventListener('click', start);
 // ============================================================ update
 function animateRunner(dt, running) {
   const air = py > 0.02, sl = slideT > 0;
-  const k = Math.min(1, dt * 14);
+  const k = Math.min(1, dt * 18);
   if (player.mixer) {                                   // glTF robot
     const anim = state === 'dead' ? 'Death' : state === 'menu' ? 'Sitting' : air ? 'Jump' : sl ? 'Sitting' : 'Running';
-    player.play(anim, anim === 'Death' ? 0.05 : 0.12);
+    player.play(anim, anim === 'Death' ? 0.05 : 0.08);
     if (player.actions.Running) player.actions.Running.timeScale = 0.9 + speed * 0.03;
     player.mixer.update(dt);
     if (state === 'menu') {
       const bow = player.posePray(clock);
       player.group.rotation.set(0.08 + bow * 0.38, Math.PI + 1.12, 0);  // YXZ: bows straight forward toward ศาลเจ้าพ่อตาล!
+      player.group.position.set(0, 0, 0);
     } else {
       if (player.incense) player.incense.visible = false;
-      const lean = sl ? 0.35 : state === 'play' && !air ? -0.1 : 0;
+      // In YXZ order: negative rotation.x reclines backward on its back (feet forward under the barrier!)
+      const lean = sl ? -1.32 : state === 'play' && !air ? 0.12 : 0;
       player.group.rotation.x += (lean - player.group.rotation.x) * k;
       player.group.rotation.y += (Math.PI - player.group.rotation.y) * Math.min(1, dt * 10);
+      const targetY = sl ? 0.42 : 0;
+      const targetZ = sl ? -0.55 : 0;
+      player.group.position.y += (targetY - player.group.position.y) * k;
+      player.group.position.z += (targetZ - player.group.position.z) * k;
     }
     return;
   }
@@ -462,11 +469,11 @@ function animateRunner(dt, running) {
   if (running && !air) runPhase += dt * (9 + speed * 0.35);
   let bob = 0;
   if (sl || state === 'menu') C.poseSlide(pf); else bob = C.poseRun(pf, runPhase, air);
-  const lean = sl ? 1.15 : air ? -0.08 : -0.2;
+  const lean = sl ? -1.32 : air ? 0.08 : 0.16;
   player.group.rotation.x += (lean - player.group.rotation.x) * k;
-  const baseY = sl ? 0.2 : (running && !air ? bob * 0.09 : 0);
+  const baseY = sl ? 0.38 : (running && !air ? bob * 0.09 : 0);
   player.group.position.y += (baseY - player.group.position.y) * k;
-  pf.head.rotation.x = sl ? -0.4 : 0.12;
+  pf.head.rotation.x = sl ? 0.4 : -0.12;
 }
 function update(dt) {
   clock += dt;
