@@ -159,22 +159,22 @@ const SCENERY_MAT = (function () {
     if (b64) {
       const img = new Image();
       img.onload = () => { tex.image = img; tex.needsUpdate = true; };
-      img.src = 'data:image/png;base64,' + b64;
+      img.src = b64.indexOf('data:') === 0 ? b64 : 'data:image/png;base64,' + b64;
     }
     return new THREE.MeshLambertMaterial({
-      map: tex, color: 0xffffff, emissive: em || 0x484848,
+      map: tex, emissiveMap: tex, color: 0xffffff, emissive: em || 0xa0a0a0,
       transparent: true, alphaTest: 0.12, side: THREE.DoubleSide
     });
   }
   return {
     shrines: [
-      loadMat(src.shrine1, 0x504842), // ศาลพระภูมิไม้สักสีเข้ม
-      loadMat(src.shrine2, 0x484030), // ศาลพระภูมิสีทองแดงทรงสูง
-      loadMat(src.shrine3, 0x484030)  // ศาลตายายสีทองแดง
+      loadMat(src.shrine1, 0xb8b0a8), // ศาลพระภูมิไม้สักสีเข้ม
+      loadMat(src.shrine2, 0xa8a098), // ศาลพระภูมิสีทองแดงทรงสูง
+      loadMat(src.shrine3, 0xa8a098)  // ศาลตายายสีทองแดง
     ],
     trees: [
-      loadMat(src.tree1, 0x354835),   // ต้นไม้ใบเขียวพุ่มใหญ่
-      loadMat(src.tree2, 0x384a35)    // ต้นมะม่วงมีลูกมะม่วงห้อย
+      loadMat(src.tree1, 0x98a898),   // ต้นไม้ใบเขียวพุ่มใหญ่
+      loadMat(src.tree2, 0x98a898)    // ต้นมะม่วงมีลูกมะม่วงห้อย
     ]
   };
 })();
