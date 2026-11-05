@@ -1,6 +1,8 @@
 <div align="center">
 
-<img src="favicon.png" width="110" alt="ผีตาลหลอน">
+<a href="https://sub-tan.onrender.com">
+  <img src="og-banner.jpg" width="100%" alt="ผีตาลหลอน - เกมวิ่งหนีผีแก้บน 3D">
+</a>
 
 # 👻 ผีตาลหลอน (Sub-Tan 3D Endless Runner)
 ### *"บนเเล้วต้องเเก้นะครับ...."* 🙏🌼🏃‍♂️💨
