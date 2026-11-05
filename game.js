@@ -551,6 +551,19 @@ function togglePause(force) {
   ui.pauseOverlay.style.display = paused ? 'flex' : 'none';
   ui.pauseBtn.textContent = paused ? '▶ เล่นต่อ' : '⏸ พักเกม';
 }
+function goToMenu() {
+  reset();
+  paused = false;
+  touch = null;
+  state = 'menu';
+  ui.flash.style.opacity = 0;
+  ui.over.style.display = 'none';
+  ui.pauseOverlay.style.display = 'none';
+  ui.hud.style.display = 'none';
+  ui.pip.style.display = 'none';
+  ui.hint.style.display = 'none';
+  ui.menu.style.display = 'flex';
+}
 function die() {
   paused = false;
   ui.pauseOverlay.style.display = 'none';
@@ -628,11 +641,13 @@ canvas.addEventListener('mousedown', (e) => swipeStart(e.clientX, e.clientY));
 window.addEventListener('mouseup', (e) => swipeEnd(e.clientX, e.clientY));
 $('startBtn').addEventListener('click', (e) => { e.stopPropagation(); start(); });
 ui.menu.addEventListener('click', () => { if (state === 'menu') start(); });
-$('retryBtn').addEventListener('click', start);
+$('retryBtn').addEventListener('click', (e) => { e.stopPropagation(); start(); });
+$('menuBtn').addEventListener('click', (e) => { e.stopPropagation(); goToMenu(); });
 ui.pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePause(); });
 ui.pauseBtn.addEventListener('touchstart', (e) => { e.stopPropagation(); }, { passive: true });
 $('resumeBtn').addEventListener('click', (e) => { e.stopPropagation(); togglePause(false); });
 $('restartBtn').addEventListener('click', (e) => { e.stopPropagation(); start(); });
+$('pauseMenuBtn').addEventListener('click', (e) => { e.stopPropagation(); goToMenu(); });
 
 // ============================================================ update
 function animateRunner(dt, running) {
