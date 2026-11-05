@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="https://sub-tan.onrender.com" target="_blank">
-  <img src="Image/og-banner.jpg" width="100%" alt="ผีตาลหลอน - 3D Endless Runner Game" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
+  <img src="Image/og-banner.jpg?v=3" width="100%" alt="ผีตาลหลอน - 3D Endless Runner Game" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
 </a>
 
 # 👻 ผีตาลหลอน (Sub-Tan)
@@ -39,19 +39,19 @@
 <table align="center" width="100%">
   <tr>
     <td align="center" width="33%">
-      <img src="Image/preview-intro.jpg" alt="ฉากบนบานหน้าศาล" style="border-radius: 8px; width: 100%; object-fit: cover;" />
+      <img src="Image/preview-intro.jpg?v=3" alt="ฉากบนบานหน้าศาล" style="border-radius: 8px; width: 100%; object-fit: cover;" />
       <br /><br />
       <b>⛩️ ฉากเปิดไหว้ศาลเจ้าพ่อตาล</b><br>
       <sub>น้องนักเรียนประถมก้มกราบขอพรหน้าศาลพระภูมิสีทองคู่ พร้อมเครื่องเซ่นแฟนต้าแดง พวงมาลัย และผีตาลยืนจ้องอยู่ข้างศาล</sub>
     </td>
     <td align="center" width="33%">
-      <img src="Image/preview-gameplay.jpg" alt="ระบบวิ่ง 3 เลนพร้อมกล้องส่องหลัง PiP" style="border-radius: 8px; width: 100%; object-fit: cover;" />
+      <img src="Image/preview-gameplay.jpg?v=3" alt="ระบบวิ่ง 3 เลนพร้อมกล้องส่องหลัง PiP" style="border-radius: 8px; width: 100%; object-fit: cover;" />
       <br /><br />
       <b>🏃‍♂️ น้องนักเรียนวิ่ง 3 เลน & กล้องหลัง PiP</b><br>
       <sub>พาน้องนักเรียนสับตีนแตกหลบสิ่งกีดขวาง เก็บพวงมาลัยมะลิ พร้อมหน้าต่างกล้องหลังส่องผีตาลวิ่งตามแบบเรียลไทม์</sub>
     </td>
     <td align="center" width="33%">
-      <img src="Image/preview-gameover.jpg" alt="ฉากจบเมื่อผีตาลจับได้และปุ่มเมนู" style="border-radius: 8px; width: 100%; object-fit: cover;" />
+      <img src="Image/preview-gameover.jpg?v=3" alt="ฉากจบเมื่อผีตาลจับได้และปุ่มเมนู" style="border-radius: 8px; width: 100%; object-fit: cover;" />
       <br /><br />
       <b>😱 ผีตาลจับได้แล้ว!</b><br>
       <sub>ฉาก Jump Scare เมื่อผีตาลประชิดตัว รายงานสถิติระยะทางและพวงมาลัย พร้อมปุ่ม "แก้บนใหม่อีกครั้ง" และปุ่ม "🏠 กลับสู่เมนู"</sub>
