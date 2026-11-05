@@ -152,6 +152,36 @@ scene.add(ground);
 });
 
 // ============================================================ scenery
+const SCENERY_MAT = (function () {
+  const src = window.SCENERY_PNG || {};
+  function loadMat(b64, em) {
+    const tex = new THREE.Texture();
+    if (b64) {
+      const img = new Image();
+      img.onload = () => { tex.image = img; tex.needsUpdate = true; };
+      img.src = 'data:image/png;base64,' + b64;
+    }
+    return new THREE.MeshLambertMaterial({
+      map: tex, color: 0xffffff, emissive: em || 0x484848,
+      transparent: true, alphaTest: 0.12, side: THREE.DoubleSide
+    });
+  }
+  return {
+    shrines: [
+      loadMat(src.shrine1, 0x504842), // ศาลพระภูมิไม้สักสีเข้ม
+      loadMat(src.shrine2, 0x484030), // ศาลพระภูมิสีทองแดงทรงสูง
+      loadMat(src.shrine3, 0x484030)  // ศาลตายายสีทองแดง
+    ],
+    trees: [
+      loadMat(src.tree1, 0x354835),   // ต้นไม้ใบเขียวพุ่มใหญ่
+      loadMat(src.tree2, 0x384a35)    // ต้นมะม่วงมีลูกมะม่วงห้อย
+    ]
+  };
+})();
+let treeSeq = 0;
+let shrineSeq = 0;
+let decorSeq = 0;
+
 function makeLanternPost() {
   const g = new THREE.Group();
   g.add(mk(GEO.cyl, MAT.darkwood, 0.08, 3.6, 0.08, 0, 1.8, 0));
@@ -159,22 +189,37 @@ function makeLanternPost() {
   g.add(mk(GEO.cyl, MAT.darkwood, 0.2, 0.08, 0.2, 0, 4.08, 0));
   return g;
 }
-function makeTree() {
+function makeTree(side) {
   const g = new THREE.Group();
-  const h = 3 + Math.random() * 3;
-  g.add(mk(GEO.cyl, MAT.darkwood, 0.22, h, 0.22, 0, h / 2, 0));
-  g.add(mk(GEO.cone, MAT.leaf, 1.5, 2.6, 1.5, 0, h + 0.6, 0));
-  g.add(mk(GEO.cone, MAT.leaf, 1.1, 2.0, 1.1, 0, h + 1.9, 0));
+  const idx = (treeSeq++) % SCENERY_MAT.trees.length;
+  const mat = SCENERY_MAT.trees[idx];
+  const scale = 0.92 + Math.random() * 0.24;
+  const w = (idx === 1 ? 4.8 : 4.5) * scale;
+  const h = (idx === 1 ? 5.2 : 5.4) * scale;
+  const geo = new THREE.PlaneGeometry(w, h);
+  const p1 = new THREE.Mesh(geo, mat);
+  p1.position.y = h * 0.48;
+  p1.rotation.y = (side || 1) * -0.18;
+  g.add(p1);
+  // Secondary crossed plane for 3D depth when passing by
+  const p2 = new THREE.Mesh(geo, mat);
+  p2.position.y = h * 0.48;
+  p2.rotation.y = (side || 1) * -0.18 + Math.PI * 0.38;
+  g.add(p2);
   return g;
 }
-function makeSpiritHouse() {     // ศาลพระภูมิข้างทาง
+function makeSpiritHouse(side) {     // ศาลพระภูมิข้างทาง (สลับ 3 แบบจากรูปจริง)
   const g = new THREE.Group();
-  g.add(mk(GEO.cyl, MAT.stone, 0.18, 1.8, 0.18, 0, 0.9, 0));
-  g.add(mk(GEO.box, MAT.stone, 1.1, 0.18, 1.1, 0, 1.85, 0));
-  g.add(mk(GEO.box, MAT.red, 0.85, 0.7, 0.85, 0, 2.28, 0));
-  g.add(mk(GEO.pyr, MAT.gold, 0.9, 0.6, 0.9, 0, 2.93, 0));
-  g.add(mk(GEO.box, MAT.red, 0.08, 0.5, 0.5, 0.2, 1.5, 0.52));   // sai sin cloth
-  const glow = mk(GEO.sph, MAT.lamp, 0.07, 0.07, 0.07, 0, 2.15, 0.44); g.add(glow);
+  const idx = (shrineSeq++) % SCENERY_MAT.shrines.length;
+  const mat = SCENERY_MAT.shrines[idx];
+  const w = idx === 0 ? 2.5 : idx === 1 ? 2.2 : 2.5;
+  const h = idx === 0 ? 3.8 : idx === 1 ? 3.9 : 3.5;
+  const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+  p.position.y = h * 0.49;
+  p.rotation.y = (side || 1) * -0.26;
+  g.add(p);
+  const glow = mk(GEO.sph, MAT.lamp, 0.07, 0.07, 0.07, 0, h * 0.56, 0.22);
+  g.add(glow);
   return g;
 }
 
@@ -239,12 +284,20 @@ const decor = [];
 let sinceDecor = 0;
 function spawnDecor(z) {
   [-1, 1].forEach((side) => {
-    if (Math.random() < 0.25) return;
-    const r = Math.random();
-    const m = r < 0.35 ? makeLanternPost() : r < 0.7 ? makeTree() : makeSpiritHouse();
-    const off = LANE_W * 1.5 + 1.2 + (r < 0.35 ? 0 : Math.random() * 6);
-    m.position.set(side * off, 0, z + (Math.random() - 0.5) * 4);
-    if (m.children.length > 6) m.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
+    if (Math.random() < 0.18) return;
+    const step = (decorSeq++) % 5;
+    let m, off;
+    if (step === 0 || step === 2) {
+      m = makeTree(side);
+      off = LANE_W * 1.5 + 2.4 + Math.random() * 3.2;
+    } else if (step === 1 || step === 3) {
+      m = makeSpiritHouse(side);
+      off = LANE_W * 1.5 + 1.8 + Math.random() * 2.2;
+    } else {
+      m = makeLanternPost();
+      off = LANE_W * 1.5 + 1.2;
+    }
+    m.position.set(side * off, 0, z + (Math.random() - 0.5) * 3.5);
     scene.add(m); decor.push(m);
   });
 }
