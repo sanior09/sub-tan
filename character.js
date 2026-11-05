@@ -16,6 +16,20 @@ const canvases = {
 function mkCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
 const tex = {};
 Object.keys(canvases).forEach((k) => { tex[k] = new THREE.CanvasTexture(canvases[k]); tex[k].anisotropy = 8; });
+function loadWrapTex(b64, rx, ry, ox) {
+  const t = new THREE.Texture();
+  t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping;
+  t.repeat.set(rx || 1, ry || 1);
+  if (ox) t.offset.x = ox;
+  if (b64) {
+    const im = new Image();
+    im.onload = () => { t.image = im; t.needsUpdate = true; };
+    im.src = b64;
+  }
+  return t;
+}
+tex.shirt = loadWrapTex(window.SHIRT_TEX, 2, 1, 0.5);
+tex.chong = loadWrapTex(window.CHONG_TEX, 2, 1, 0);
 
 // Remove the bright cream/white classroom wall backdrop via border flood-fill.
 // Preserves the white shirt collar and rolled-up white eyes inside the silhouette.
@@ -162,10 +176,10 @@ function buildHead(ghost, noFace) {
     : new THREE.MeshLambertMaterial({ map, emissiveMap: map, emissive: 0x555555, color: 0x8a8a8a, transparent: true, alphaTest: 0.03 });
   head.add(new THREE.Mesh(geo, faceMat));
 
-  // back/top of the head: dark hair volume (kept above the jaw so it never shows behind the chin)
+  // back/top of the head: dark hair volume centered behind the face so it never sticks out to the side
   const hairMat = new THREE.MeshLambertMaterial({ color: ghost ? 0x15161e : 0x141419 });
-  const hair = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 20, 0, Math.PI * 2, 0, 2.15), hairMat);
-  hair.scale.set(RX * 0.94, RY * 0.92, RZ * 0.92); hair.position.set(0, 0.02, -0.055);
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 18, 0, Math.PI * 2, 0, 2.0), hairMat);
+  hair.scale.set(RX * 0.76, RY * 0.82, RZ * 0.82); hair.position.set(fx(332), 0.04, -0.065);
   head.add(hair);
   return { group: head, mats: [faceMat] };
 }
@@ -217,15 +231,15 @@ function makeHuman(ghost, noFace) {
     f.add(mesh(sphG, skin, 0, -0.5, 0, 0.1, 0.11, 0.1));
     p.add(f); g.add(p); return { p, f };
   };
-  // legs (puffed blue Chong Kraben down past the knees + bare lower calves + grey sneakers)
+  // legs (puffed blue Chong Kraben down past the knees + bare lower calves + bare feet, NO shoes!)
   const mkLeg = (s) => {
     const t = new THREE.Group(); t.position.set(s * 0.21, 1.05, 0);
     t.add(mesh(cap(0.18, 0.26), pants, 0, -0.24, 0, 1.15, 1.0, 1.15));
     const sh = new THREE.Group(); sh.position.set(0, -0.46, 0);
     sh.add(mesh(cap(0.14, 0.10), pants, 0, -0.08, 0));
-    sh.add(mesh(cap(0.085, 0.22), skin, 0, -0.26, 0));
-    sh.add(mesh(sphG, shoe, 0, -0.49, 0.09, 0.14, 0.1, 0.27));               // sneaker
-    sh.add(mesh(boxG, sole, 0, -0.575, 0.09, 0.22, 0.035, 0.42));
+    sh.add(mesh(cap(0.085, 0.24), skin, 0, -0.27, 0));
+    sh.add(mesh(sphG, ghost ? skin : shoe, 0, -0.50, 0.08, 0.11, 0.07, 0.24));   // bare foot for ghost
+    if (!ghost) sh.add(mesh(boxG, sole, 0, -0.575, 0.09, 0.22, 0.035, 0.42));
     t.add(sh); g.add(t); return { t, s: sh };
   };
   const armL = mkArm(-1), armR = mkArm(1), legL = mkLeg(-1), legR = mkLeg(1);
@@ -328,86 +342,28 @@ function makeGhost() {
     model.traverse((o) => {
       if (!o.isMesh || !o.geometry) return;
       o.frustumCulled = false;
+      const isJoints = /joint/i.test(o.material.name || o.name || '');
       const geo = o.geometry;
       const pos = geo.attributes.position;
       if (pos) {
         const count = pos.count;
         const colors = new Float32Array(count * 3);
+        const keepVert = new Uint8Array(count);
         for (let i = 0; i < count; i++) {
           let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
           const ax = Math.abs(x);
-          let r = 0.92, g = 0.93, b = 0.96;
+          let r = 0.80, g = 0.62, b = 0.48;
 
-          if (y > 1.54 && ax < 0.15) {
-            // Collapse Xbot's original robot head inside the neck so only Ghost Tan's 3D head shows
-            x *= 0.15; y = 1.49; z *= 0.15;
-            r = 0.82; g = 0.64; b = 0.50;
-          } else if (y > 1.46 && ax < 0.095) {
-            // Neck (skin tone) + shirt collar at the base
-            if (y < 1.485) {
-              x *= 1.08; z *= 1.08;
-              r = 0.96; g = 0.97; b = 1.0;
-            } else {
-              r = 0.82; g = 0.64; b = 0.50;
-            }
-          } else if (ax > 0.72) {
-            // Hands & fingers (bare skin)
-            r = 0.82; g = 0.64; b = 0.50;
-          } else if (y >= 0.955 || ax >= 0.18) {
-            // White long-sleeve button-up dress shirt (เสื้อเชิ้ตแขนยาวสีขาว)
-            const wrinkle = 0.96 + 0.04 * Math.sin(y * 38 + x * 25);
-            if (ax < 0.22) {
-              // Loose dress-shirt torso
-              const waistBlouse = y < 1.06 ? 1.0 + 0.12 * Math.sin(((y - 0.955) / 0.105) * Math.PI) : 1.07;
-              x *= waistBlouse; z *= waistBlouse * 1.05;
-            } else {
-              // Long white shirt sleeves + wrist cuffs
-              const cuff = ax > 0.67 ? 1.04 : 1.12;
-              y = 1.42 + (y - 1.42) * cuff;
-              z *= cuff;
-            }
-            r = 0.92 * wrinkle; g = 0.93 * wrinkle; b = 0.97 * wrinkle;
-            // Center button placket & pocket details on front of shirt
-            if (z > 0.03 && ax < 0.016 && y > 0.97 && y < 1.46) {
-              z += 0.006;
-              const btn = Math.sin(y * 95) > 0.75 ? 0.78 : 0.88;
-              r = btn; g = btn + 0.01; b = btn + 0.04;
-            } else if (z > 0.04 && x > 0.035 && x < 0.105 && y > 1.20 && y < 1.31) {
-              z += 0.004;
-              r *= 0.95; g *= 0.95; b *= 0.96;
-            }
-            // Subtle blood drops on the white shirt (like the photo)
-            if (z > 0.04 && Math.hypot(x + 0.025, y - 1.12) < 0.014) {
-              r = 0.55; g = 0.06; b = 0.08;
-            }
-          } else if (y >= 0.30) {
-            // Shiny Royal-Blue Chong Kraben (โจงกระเบนผ้ามันสีน้ำเงินเข้มสด)
-            const t = Math.max(0, Math.min(1, (y - 0.30) / 0.655));
-            const lx = x < 0 ? -0.088 : 0.088;
-            const dx = x - lx;
-            const ang = Math.atan2(z, dx);
-            const pleat = Math.sin(ang * 7 + y * 9);
-            const puff = 1.0 + 0.92 * Math.sin(Math.pow(t, 0.72) * Math.PI) + 0.07 * pleat;
-            x = lx + dx * puff;
-            z = z * (puff * 1.08) + (y > 0.52 && Math.abs(x) < 0.07 ? 0.025 : 0);
-            // Rich royal satin blue with deep pleated folds
-            const shade = 0.5 + 0.5 * pleat;
-            r = 0.03 + 0.08 * shade;
-            g = 0.11 + 0.21 * shade;
-            b = 0.55 + 0.42 * shade;
-          } else if (y >= 0.11) {
-            // Bare lower calves / ankles below Chong Kraben (สีเนื้อ)
-            r = 0.80; g = 0.62; b = 0.48;
-          } else {
-            // Grey Yeezy-style sneakers (รองเท้าผ้าใบสีเทา)
-            x *= 1.15; z *= 1.12;
-            const stripe = 0.92 + 0.08 * Math.sin(z * 110 + x * 60);
-            if (y < 0.036) {
-              // Ribbed sneaker sole
-              const rib = 0.94 + 0.06 * Math.sin(z * 160);
-              r = 0.36 * rib; g = 0.38 * rib; b = 0.35 * rib;
-            } else {
-              r = 0.45 * stripe; g = 0.47 * stripe; b = 0.44 * stripe;
+          if (ax > 0.68) {
+            // Keep realistic 5-fingered human hands
+            keepVert[i] = 1;
+          } else if (!isJoints && y < 0.28 && ax < 0.22) {
+            // Keep bare human feet & ankles (no shoes!)
+            keepVert[i] = 1;
+            if (y < 0.08) {
+              x *= 0.93;
+              const toeShade = (z > 0.09 && y < 0.04) ? 0.92 + 0.06 * Math.sin(x * 160) : 1.0;
+              r = 0.77 * toeShade; g = 0.58 * toeShade; b = 0.44 * toeShade;
             }
           }
           pos.setXYZ(i, x, y, z);
@@ -415,32 +371,177 @@ function makeGhost() {
           colors[i * 3 + 1] = g;
           colors[i * 3 + 2] = b;
         }
+        // Strip all robotic armor & mechanical ball-joint triangles from the index buffer
+        if (geo.index) {
+          const idx = geo.index.array;
+          const kept = [];
+          for (let i = 0; i < idx.length; i += 3) {
+            const a = idx[i], b = idx[i + 1], c = idx[i + 2];
+            if (keepVert[a] && keepVert[b] && keepVert[c]) {
+              kept.push(a, b, c);
+            }
+          }
+          geo.setIndex(kept);
+        }
         pos.needsUpdate = true;
         geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
         geo.computeVertexNormals();
       }
-      o.material = new THREE.MeshPhongMaterial({
-        vertexColors: true, emissive: 0x1a2030, specular: 0x3550aa, shininess: 46, fog: false });
+      o.material = new THREE.MeshLambertMaterial({
+        vertexColors: true, emissive: 0x1e1612, fog: false });
     });
     root.add(model);
     root.updateMatrixWorld(true);
-    // mount Tan's head on the model's head bone (rest pose -> head faces +Z, up +Y)
-    const bone = model.getObjectByName('mixamorigHead') || model.getObjectByName('mixamorig:Head');
+
+    // Helper: create a world-aligned (1 unit = 1 world meter) mount on any Mixamo bone
+    const qModel = new THREE.Quaternion(); model.getWorldQuaternion(qModel);
+    const getBone = (n) => model.getObjectByName('mixamorig' + n) || model.getObjectByName('mixamorig:' + n);
+    const makeMount = (bone) => {
+      const qB = new THREE.Quaternion(), sB = new THREE.Vector3();
+      bone.getWorldQuaternion(qB); bone.getWorldScale(sB);
+      const m = new THREE.Group();
+      m.quaternion.copy(qModel.clone().invert().multiply(qB).invert());
+      m.scale.setScalar(1 / sB.x);
+      bone.add(m);
+      return m;
+    };
+    const shirtMat = new THREE.MeshLambertMaterial({
+      map: tex.shirt, emissiveMap: tex.shirt, emissive: 0x484c56, color: 0xf4f6fc, fog: false });
+    const sleeveMat = new THREE.MeshLambertMaterial({
+      color: 0xeef1f8, emissive: 0x2c303a, fog: false });
+    const chongMat = new THREE.MeshPhongMaterial({
+      map: tex.chong, emissiveMap: tex.chong, emissive: 0x0b1855, color: 0x2652ff,
+      specular: 0x5588ff, shininess: 62, fog: false });
+    const skinMat = new THREE.MeshLambertMaterial({
+      color: 0xcc9e7a, emissive: 0x1e1612, fog: false });
+
+    // Helper: span a smooth cylinder/limb between boneA and boneB in rest pose
+    const spanLimb = (bA, bB, rTop, rBot, mat, padTop, padBot, sx, sz) => {
+      if (!bA || !bB) return null;
+      const pA = new THREE.Vector3(), pB = new THREE.Vector3();
+      bA.getWorldPosition(pA); bB.getWorldPosition(pB);
+      const dir = pB.clone().sub(pA);
+      const len = dir.length();
+      const u = dir.clone().normalize();
+      const start = u.clone().multiplyScalar(-(padTop || 0));
+      const end = u.clone().multiplyScalar(len + (padBot || 0));
+      const mid = start.clone().add(end).multiplyScalar(0.5);
+      const totalLen = end.distanceTo(start);
+      const geo = new THREE.CylinderGeometry(rTop, rBot, totalLen, 24, 8);
+      geo.rotateY(Math.PI); // face front (+Z) for texture UVs
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.scale.set(sx || 1, 1, sz || 1);
+      const holder = new THREE.Group();
+      holder.position.copy(mid);
+      holder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), u.clone().negate());
+      holder.add(mesh);
+      const mount = makeMount(bA);
+      mount.add(holder);
+      return { mount, mesh, len };
+    };
+
+    // 1. Smooth Human Torso in Real Photo White Button-Up Shirt (Spine1)
+    const bSpine1 = getBone('Spine1'), bHips = getBone('Hips'), bNeck = getBone('Neck');
+    if (bSpine1) {
+      const mSpine = makeMount(bSpine1);
+      const torsoGeo = new THREE.CylinderGeometry(0.245, 0.215, 0.78, 32, 14);
+      torsoGeo.rotateY(Math.PI);
+      const tp = torsoGeo.attributes.position;
+      for (let i = 0; i < tp.count; i++) {
+        let tx = tp.getX(i), ty = tp.getY(i), tz = tp.getZ(i);
+        // Natural male flat chest & broad shoulders (no robot armor grooves!)
+        const shoulder = ty > 0.15 ? 1.0 + 0.18 * ((ty - 0.15) / 0.24) : 1.0;
+        const hem = ty < -0.25 ? 1.05 : 1.0;
+        tx *= shoulder * hem * 1.12;
+        tz *= 0.72 * hem;
+        tp.setXYZ(i, tx, ty, tz);
+      }
+      torsoGeo.computeVertexNormals();
+      const torsoMesh = new THREE.Mesh(torsoGeo, shirtMat);
+      torsoMesh.position.set(0, 0.04, 0.01);
+      mSpine.add(torsoMesh);
+    }
+    if (bNeck) {
+      const mNeck = makeMount(bNeck);
+      const neckMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.095, 0.18, 18), skinMat);
+      neckMesh.position.set(0, 0.04, 0);
+      mNeck.add(neckMesh);
+      const collarMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.13, 0.09, 20), sleeveMat);
+      collarMesh.position.set(0, -0.02, 0.005);
+      mNeck.add(collarMesh);
+    }
+
+    // 2. Smooth Long White Shirt Sleeves (covering shoulders, upper arms, elbows, and forearms)
+    [['LeftArm', 'LeftForeArm', 'LeftHand'], ['RightArm', 'RightForeArm', 'RightHand']].forEach(([uName, fName, hName]) => {
+      const bU = getBone(uName), bF = getBone(fName), bH = getBone(hName);
+      if (bU) {
+        const mU = makeMount(bU);
+        mU.add(new THREE.Mesh(new THREE.SphereGeometry(0.115, 16, 12), sleeveMat));
+      }
+      if (bF) {
+        const mF = makeMount(bF);
+        mF.add(new THREE.Mesh(new THREE.SphereGeometry(0.098, 16, 12), sleeveMat));
+      }
+      spanLimb(bU, bF, 0.112, 0.096, sleeveMat, 0.02, 0.02, 1, 0.94);
+      spanLimb(bF, bH, 0.094, 0.074, sleeveMat, 0.02, 0.01, 1, 0.94);
+    });
+
+    // 3. Smooth Draped Royal-Blue Silk Chong Kraben (Hips + LeftUpLeg + RightUpLeg down past knees!)
+    if (bHips) {
+      const mHips = makeMount(bHips);
+      const hipGeo = new THREE.CylinderGeometry(0.225, 0.275, 0.36, 28, 8);
+      hipGeo.rotateY(Math.PI);
+      const hipMesh = new THREE.Mesh(hipGeo, chongMat);
+      hipMesh.scale.set(1.12, 1, 0.82);
+      hipMesh.position.set(0, -0.02, 0.01);
+      mHips.add(hipMesh);
+    }
+    [['LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToe_End'], ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToe_End']].forEach(([uLeg, lLeg, foot, toe]) => {
+      const bUL = getBone(uLeg), bLL = getBone(lLeg), bFt = getBone(foot), bToe = getBone(toe);
+      if (bUL && bLL) {
+        // Billowy Chong Kraben leg extending 0.22m past the knee joint so the knee is completely covered in blue silk!
+        const pA = new THREE.Vector3(), pB = new THREE.Vector3();
+        bUL.getWorldPosition(pA); bLL.getWorldPosition(pB);
+        const len = pB.distanceTo(pA) + 0.24;
+        const cGeo = new THREE.CylinderGeometry(0.165, 0.105, len, 28, 14);
+        cGeo.rotateY(Math.PI);
+        const cp = cGeo.attributes.position;
+        for (let i = 0; i < cp.count; i++) {
+          let cx = cp.getX(i), cy = cp.getY(i), cz = cp.getZ(i);
+          const nt = (cy + len / 2) / len; // 0 at bottom (below knee), 1 at top (hip)
+          const ang = Math.atan2(cz, cx);
+          const pleat = 1.0 + 0.08 * Math.sin(ang * 6 + nt * 8);
+          const puff = (0.75 + 0.62 * Math.sin(Math.pow(nt, 0.65) * Math.PI)) * pleat;
+          tp_set: { cx *= puff * 1.08; cz *= puff * 1.02; }
+          cp.setXYZ(i, cx, cy, cz);
+        }
+        cGeo.computeVertexNormals();
+        const cMesh = new THREE.Mesh(cGeo, chongMat);
+        cMesh.position.set(0, -len / 2 + 0.04, 0.01);
+        const mUL = makeMount(bUL);
+        mUL.add(cMesh);
+      }
+      // Smooth bare human lower calf & ankle (spanning knee to foot, bridging the ankle seamlessly)
+      spanLimb(bLL, bFt, 0.075, 0.052, skinMat, -0.10, 0.05, 1, 1);
+      // Smooth bare human foot (no shoes!)
+      if (bFt && bToe) {
+        spanLimb(bFt, bToe, 0.055, 0.048, skinMat, 0.03, 0.02, 1.15, 0.72);
+      }
+    });
+
+    // 4. Mount Ghost Tan's head with natural human proportions (HS = 1.22)
+    const bone = getBone('Head');
     if (bone) {
-      const qBone = new THREE.Quaternion(), qModel = new THREE.Quaternion();
-      bone.getWorldQuaternion(qBone); model.getWorldQuaternion(qModel);
-      const offset = qModel.clone().invert().multiply(qBone).invert();      // bone-local -> model-aligned
-      const sb = new THREE.Vector3(); bone.getWorldScale(sb);
-      const ws = sb.x;                                                      // total world scale of bone
-      const HS = 1.48;                                                      // Tan's head size in world units
+      const mHead = makeMount(bone);
+      const HS = 1.22;
       const hd = buildHead(true);
-      const mount = new THREE.Group(), wobble = new THREE.Group();
-      mount.quaternion.copy(offset);
-      mount.position.copy(new THREE.Vector3(0, 0.21, 0.08).applyQuaternion(offset).divideScalar(ws));
-      mount.scale.setScalar(HS / ws);
+      const wobble = new THREE.Group();
+      wobble.position.set(0.035, 0.14, 0.075);
+      wobble.scale.setScalar(HS);
       hd.group.scale.setScalar(1);
-      wobble.add(hd.group); mount.add(wobble); bone.add(mount);
-      gh.head = wobble; gh.mats = hd.mats;
+      wobble.add(hd.group);
+      mHead.add(wobble);
+      gh.head = wobble; gh.mats = [shirtMat, sleeveMat, chongMat, ...hd.mats];
     }
     gh.mixer = new THREE.AnimationMixer(model);
     const clip = gltf.animations.find((c) => c.name === 'run') || gltf.animations[0];
