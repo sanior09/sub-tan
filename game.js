@@ -330,16 +330,8 @@ const shrineGroup = (function makeTanShrine() {
     g.add(pSlice);
   });
 
-  // 3. Glowing portrait of เจ้าพ่อตาล mounted inside the real shrine's open cabin doorway (in front of curved plane!)
-  const cx = -0.10, cy = 2.14;
-  const portraitMat = new THREE.MeshBasicMaterial({
-    map: C.tex.ghostFace, transparent: true, fog: false
-  });
-  const portrait = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.66), portraitMat);
-  portrait.position.set(cx, cy, 0.25);
-  g.add(portrait);
-
-  // 4. Signboard "ศาลเจ้าพ่อตาล" mounted on the front gable eave
+  // 3. Signboard "ศาลเจ้าพ่อตาล" mounted on the front gable eave
+  const cx = -0.10;
   const sc = document.createElement('canvas'); sc.width = 320; sc.height = 72;
   const sx = sc.getContext('2d');
   sx.fillStyle = '#3a140c'; sx.fillRect(0, 0, 320, 72);
