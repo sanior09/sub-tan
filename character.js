@@ -267,12 +267,10 @@ function makeRunner() {
     if (prev) prev.fadeOut(fade || 0.15);
     r.current = name;
   };
-  r.posePray = (t) => {
-    const bow = (Math.sin(t * 4.2) + 1) * 0.5;                 // 0..1 rhythmic Wai bow
+  r.posePray = () => {
     incense.visible = true;
-    incense.position.set(0, 1.02 - bow * 0.16, 0.58 + bow * 0.08);
-    incense.rotation.set(0.35 + bow * 0.35, 0, 0);
-    return bow;
+    incense.position.set(0, 0.98, 0.58);
+    incense.rotation.set(0.35, 0, 0);
   };
   try {
     const bin = atob(window.ROBOT_GLB), buf = new Uint8Array(bin.length);

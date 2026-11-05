@@ -433,9 +433,8 @@ function animateRunner(dt, running) {
     if (player.actions.Running) player.actions.Running.timeScale = 0.9 + speed * 0.03;
     player.mixer.update(dt);
     if (state === 'menu') {
-      const bow = player.posePray(clock);
-      player.group.rotation.x = 0.12 + bow * 0.34;      // bowing deeply toward ศาลเจ้าพ่อตาล
-      player.group.rotation.y = Math.PI + 1.12;         // turned toward the shrine
+      player.posePray();
+      player.group.rotation.set(0, Math.PI + 1.12, 0);  // sit still facing ศาลเจ้าพ่อตาล (no swaying)
     } else {
       if (player.incense) player.incense.visible = false;
       const lean = sl ? 0.35 : state === 'play' && !air ? -0.1 : 0;
