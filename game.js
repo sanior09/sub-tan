@@ -308,60 +308,81 @@ function makeSpiritHouse(side) {     // ศาลพระภูมิข้า�
   return g;
 }
 
-// Grand "ศาลเจ้าพ่อตาล" at the starting line (Subway Surfers-style intro scene)
+// Grand "ศาลเจ้าพ่อตาล" at the starting line (built from the real golden-red Thai spirit house!)
 const shrineGroup = (function makeTanShrine() {
   const g = new THREE.Group();
-  // stepped stone pedestal + pillar + 3-color sacred cloth (ผ้าสามสี)
-  g.add(mk(GEO.box, MAT.stone, 1.2, 0.22, 1.2, 0, 0.11, 0));
-  g.add(mk(GEO.cyl, MAT.stone, 0.24, 1.35, 0.24, 0, 0.8, 0));
-  g.add(mk(GEO.box, MAT.red, 0.52, 0.35, 0.52, 0, 0.95, 0));
-  g.add(mk(GEO.box, MAT.gold, 0.54, 0.16, 0.54, 0, 1.12, 0));
-  // wide offering platform
-  g.add(mk(GEO.box, MAT.stone, 1.75, 0.16, 1.55, 0, 1.48, 0.05));
-  g.add(mk(GEO.box, MAT.gold, 1.82, 0.06, 1.62, 0, 1.56, 0.05));
-  // ornate red & gold shrine cabin
-  g.add(mk(GEO.box, MAT.red, 1.2, 1.05, 0.95, 0, 2.08, -0.12));
-  [-0.56, 0.56].forEach((x) => g.add(mk(GEO.cyl, MAT.gold, 0.06, 1.05, 0.06, x, 2.08, 0.36)));
-  // double-tiered golden Thai roof
-  g.add(mk(GEO.pyr, MAT.gold, 1.15, 0.55, 1.05, 0, 2.85, -0.08));
-  g.add(mk(GEO.pyr, MAT.gold, 0.82, 0.5, 0.78, 0, 3.25, -0.08));
-  // glowing framed portrait of เจ้าพ่อตาล inside the shrine!
-  g.add(mk(GEO.box, MAT.gold, 0.78, 0.82, 0.05, 0, 2.08, 0.37));
+  const pair = SCENERY_MAT.shrines[2]; // ศาลเจ้าพ่อสีทอง-แดงทรงเรือนไทยพร้อมโต๊ะวางเครื่องเซ่น
+  const w = 2.75, h = 3.60;
+  const baseY = 0.12;
+
+  // 1. Soft radial ground shadow + 3D stepped stone & gold plinth
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 3.4), SCENERY_MAT.shadowMat);
+  sh.rotation.x = -Math.PI / 2; sh.position.y = 0.015;
+  g.add(sh);
+  g.add(mk(GEO.box, MAT.stone, 1.95, 0.12, 1.75, 0, 0.06, 0));
+  g.add(mk(GEO.box, MAT.gold, 1.65, 0.08, 1.45, 0, 0.14, 0));
+
+  // 2. Multi-layer 3D volumetric real spirit house body
+  const geo = makeCurvedPlane(w, h, 0.16);
+  const pFront = new THREE.Mesh(geo, pair.front);
+  pFront.position.set(0.10, baseY + h * 0.5, 0.10);
+  g.add(pFront);
+  [-0.04, -0.16, -0.28].forEach((dz) => {
+    const pSlice = new THREE.Mesh(geo, pair.back);
+    pSlice.position.set(0.10, baseY + h * 0.5, dz);
+    g.add(pSlice);
+  });
+
+  // 3. Glowing portrait of เจ้าพ่อตาล mounted inside the real shrine's open cabin doorway
+  const cx = -0.06, cy = 2.26;
   const portraitMat = new THREE.MeshBasicMaterial({
-    map: C.tex.ghostFace, transparent: true, fog: false });
-  const portraitBg = mk(GEO.box, new THREE.MeshBasicMaterial({ color: 0x161b2e }), 0.68, 0.72, 0.04, 0, 2.08, 0.38);
-  g.add(portraitBg);
-  const portrait = new THREE.Mesh(new THREE.PlaneGeometry(0.68, 0.72), portraitMat);
-  portrait.position.set(0, 2.08, 0.41); g.add(portrait);
-  // signboard "ศาลเจ้าพ่อตาล"
+    map: C.tex.ghostFace, transparent: true, fog: false
+  });
+  const portrait = new THREE.Mesh(new THREE.PlaneGeometry(0.66, 0.70), portraitMat);
+  portrait.position.set(cx, cy, 0.25);
+  g.add(portrait);
+
+  // 4. Signboard "ศาลเจ้าพ่อตาล" mounted on the front gable eave
   const sc = document.createElement('canvas'); sc.width = 320; sc.height = 72;
   const sx = sc.getContext('2d');
   sx.fillStyle = '#3a140c'; sx.fillRect(0, 0, 320, 72);
   sx.strokeStyle = '#ffcc33'; sx.lineWidth = 6; sx.strokeRect(3, 3, 314, 66);
   sx.fillStyle = '#ffdd55'; sx.font = 'bold 34px Sarabun, Tahoma, sans-serif';
   sx.textAlign = 'center'; sx.textBaseline = 'middle'; sx.fillText('ศาลเจ้าพ่อตาล', 160, 38);
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 0.28),
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.18, 0.26),
     new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), fog: false }));
-  sign.position.set(0, 2.48, 0.58); g.add(sign);
-  // offerings on the front ledge: red Fanta bottle + green straw, garland, incense pot & candles
+  sign.position.set(cx, 2.74, 0.28);
+  g.add(sign);
+
+  // 5. Offerings arranged on the real shrine's golden front offering table (y ~ 1.66)
+  const tableY = 1.66, tableZ = 0.30;
   const redDrink = new THREE.MeshBasicMaterial({ color: 0xff1e27 });
   const greenStraw = new THREE.MeshBasicMaterial({ color: 0x32ff6a });
-  g.add(mk(GEO.cyl, redDrink, 0.065, 0.28, 0.065, -0.42, 1.72, 0.56));
-  g.add(mk(GEO.cyl, greenStraw, 0.012, 0.22, 0.012, -0.40, 1.90, 0.56));
-  g.add(mk(GEO.cyl, MAT.gold, 0.09, 0.14, 0.09, 0, 1.65, 0.58));  // incense pot
+  g.add(mk(GEO.cyl, redDrink, 0.065, 0.26, 0.065, -0.34, tableY + 0.13, tableZ));
+  g.add(mk(GEO.cyl, greenStraw, 0.012, 0.20, 0.012, -0.32, tableY + 0.30, tableZ));
+  g.add(mk(GEO.cyl, MAT.gold, 0.085, 0.13, 0.085, 0.06, tableY + 0.06, tableZ));  // incense pot
   [-0.03, 0, 0.03].forEach((dx) => {
-    g.add(mk(GEO.cyl, MAT.red, 0.009, 0.22, 0.009, dx, 1.80, 0.58));
-    g.add(mk(GEO.sph, MAT.lamp, 0.02, 0.02, 0.02, dx, 1.92, 0.58));
+    g.add(mk(GEO.cyl, MAT.red, 0.009, 0.20, 0.009, 0.06 + dx, tableY + 0.20, tableZ));
+    g.add(mk(GEO.sph, MAT.lamp, 0.02, 0.02, 0.02, 0.06 + dx, tableY + 0.31, tableZ));
   });
-  [-0.24, 0.24].forEach((dx) => {                                   // candles
-    g.add(mk(GEO.cyl, MAT.gold, 0.022, 0.18, 0.022, dx, 1.66, 0.58));
-    g.add(mk(GEO.sph, MAT.lamp, 0.032, 0.048, 0.032, dx, 1.78, 0.58));
+  [-0.16, 0.28].forEach((xPos) => {                                                 // candles
+    g.add(mk(GEO.cyl, MAT.gold, 0.022, 0.17, 0.022, xPos, tableY + 0.08, tableZ));
+    g.add(mk(GEO.sph, MAT.lamp, 0.032, 0.048, 0.032, xPos, tableY + 0.19, tableZ));
   });
   const gar = new THREE.Mesh(GEO.garlandPlane, MAT.garlandPic);
-  gar.scale.setScalar(0.56); gar.position.set(0.46, 1.72, 0.62); g.add(gar);
+  gar.scale.setScalar(0.54);
+  gar.position.set(0.48, tableY + 0.14, tableZ + 0.04);
+  g.add(gar);
+
+  const halo = new THREE.Sprite(SCENERY_MAT.candleHaloMat);
+  halo.scale.set(2.2, 2.2, 1);
+  halo.position.set(0.06, tableY + 0.28, tableZ + 0.08);
+  g.add(halo);
+
   const sLight = new THREE.PointLight(0xffb85c, 1.6, 9);
-  sLight.position.set(0, 2.3, 1.2); g.add(sLight);
-  g.scale.setScalar(1.15);
+  sLight.position.set(0, 2.3, 1.2);
+  g.add(sLight);
+  g.scale.setScalar(1.12);
   scene.add(g);
   return g;
 })();
