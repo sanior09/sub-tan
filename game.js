@@ -351,7 +351,7 @@ const sfx = {
 // ============================================================ game state
 const $ = (id) => document.getElementById(id);
 const ui = {
-  hud: $('hud'), score: $('score'), offerN: $('offerN'), bar: $('barfill'), hint: $('hint'),
+  hud: $('hud'), score: $('score'), hudBest: $('hudBest'), offerN: $('offerN'), bar: $('barfill'), hint: $('hint'),
   pip: $('pip'), vig: $('vig'), flash: $('flash'), menu: $('menu'), over: $('over'),
   pauseOverlay: $('pauseOverlay'), pauseBtn: $('pauseBtn'),
   fScore: $('fScore'), fOffer: $('fOffer'), fBest: $('fBest'),
@@ -688,7 +688,10 @@ function update(dt) {
 
   // ----- HUD
   if (state === 'play') {
-    ui.score.textContent = Math.floor(dist);
+    const curM = Math.floor(dist);
+    ui.score.textContent = curM;
+    if (curM > best) { best = curM; localStorage.setItem('tanGhostBest', best); }
+    if (ui.hudBest) ui.hudBest.textContent = best;
     ui.offerN.textContent = offerCount;
     const r = Math.max(0, Math.min(1, (gap - CATCH_GAP) / (GHOST_MAX_GAP - CATCH_GAP)));
     ui.bar.style.width = (r * 100).toFixed(1) + '%';
