@@ -270,11 +270,8 @@ function makeRunner() {
   r.posePray = (t) => {
     const bow = (Math.sin(t * 4.2) + 1) * 0.5;                 // 0..1 rhythmic Wai bow
     incense.visible = true;
-    incense.position.set(0, 1.02 - bow * 0.22, 0.58 + bow * 0.12);
-    incense.rotation.set(0.35 + bow * 0.45, 0, 0);
-    if (r.bones.head) r.bones.head.rotation.x -= bow * 0.35;
-    if (r.bones.armL) { r.bones.armL.rotation.z += 0.45; r.bones.armL.rotation.x += 0.35; }
-    if (r.bones.armR) { r.bones.armR.rotation.z -= 0.45; r.bones.armR.rotation.x += 0.35; }
+    incense.position.set(0, 1.02 - bow * 0.16, 0.58 + bow * 0.08);
+    incense.rotation.set(0.35 + bow * 0.35, 0, 0);
     return bow;
   };
   try {
@@ -287,9 +284,6 @@ function makeRunner() {
       model.scale.setScalar(k); model.position.y = -box.min.y * k;
       model.traverse((o) => {
         if (o.isMesh && o.material) { o.material.fog = true; }
-        if (o.name === 'Head') r.bones.head = o;
-        if (o.name === 'UpperArm.L') r.bones.armL = o;
-        if (o.name === 'UpperArm.R') r.bones.armR = o;
       });
       root.add(model);
       r.mixer = new THREE.AnimationMixer(model);
