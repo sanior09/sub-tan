@@ -179,25 +179,20 @@ function makeHuman(ghost, noFace) {
   const g = new THREE.Group(), mats = [];
   const M = (cN, cG) => {
     if (!ghost) return new THREE.MeshLambertMaterial({ color: cN });
-    return new THREE.MeshLambertMaterial({ color: cG, emissive: 0x2a3550, fog: false });
+    return new THREE.MeshLambertMaterial({ color: cG, emissive: 0x182030, fog: false });
   };
-  const jacket = M(0x1b2823, 0x9db0c9), pants = M(0x262b36, 0x7f90ad), skin = M(0xdba982, 0xcdd9ee);
-  const shoe = M(0xf4f4f4, 0xe3eaff), sole = M(0x9a9aa6, 0x8f9fc5), bag = M(0xd13a32, 0x000000);
+  // Ghost wears: white long-sleeve button-up shirt + royal blue Chong Kraben + bare calves + grey sneakers
+  const jacket = M(0x1b2823, 0xf0f3fa), pants = M(0x262b36, 0x1034c8), skin = M(0xdba982, 0xd8a882);
+  const shoe = M(0xf4f4f4, 0x6e736b), sole = M(0x9a9aa6, 0x555952), bag = M(0xd13a32, 0x000000);
   const mesh = (geo, mat, x, y, z, sx, sy, sz) => {
     const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z);
     if (sx !== undefined) m.scale.set(sx, sy, sz); return m;
   };
 
   // pelvis + torso
-  g.add(mesh(boxG, pants, 0, 1.08, 0, 0.84, 0.24, 0.46));
-  g.add(mesh(boxG, jacket, 0, 1.52, 0, 0.9, 1.0, 0.5));
+  g.add(mesh(boxG, pants, 0, 1.08, 0, 0.92, 0.28, 0.52));
+  g.add(mesh(boxG, jacket, 0, 1.52, 0, 0.88, 1.0, 0.48));
   [-1, 1].forEach((s) => g.add(mesh(sphG, jacket, s * 0.5, 1.94, 0, 0.17, 0.17, 0.2)));   // rounded shoulders
-  const chestTex = ghost ? tex.ghostChest : tex.chest;
-  const chestMat = ghost
-    ? new THREE.MeshLambertMaterial({ map: chestTex, emissiveMap: chestTex, emissive: 0x6a7a90, color: 0x9aa8c0, transparent: true, alphaTest: 0.03, fog: false })
-    : new THREE.MeshLambertMaterial({ map: chestTex, emissiveMap: chestTex, emissive: 0x555555, color: 0x8a8a8a, transparent: true, alphaTest: 0.03 });
-  if (ghost) mats.push(chestMat);
-  if (!noFace) g.add(mesh(new THREE.PlaneGeometry(0.9, 1.0), chestMat, 0, 1.52, 0.252));
   g.add(mesh(cap(0.13, 0.14), skin, 0, 2.16, 0));                      // neck
 
   // head
@@ -218,16 +213,17 @@ function makeHuman(ghost, noFace) {
     p.add(mesh(cap(0.1, 0.26), jacket, 0, -0.23, 0));
     const f = new THREE.Group(); f.position.set(0, -0.46, 0);
     f.add(mesh(cap(0.09, 0.24), jacket, 0, -0.21, 0));
-    f.add(mesh(boxG, M(0xffffff, 0xf0f4ff), 0, -0.4, 0, 0.17, 0.05, 0.17));    // shirt cuff
+    f.add(mesh(boxG, M(0xffffff, 0xffffff), 0, -0.4, 0, 0.17, 0.05, 0.17));    // shirt cuff
     f.add(mesh(sphG, skin, 0, -0.5, 0, 0.1, 0.11, 0.1));
     p.add(f); g.add(p); return { p, f };
   };
-  // legs
+  // legs (puffed blue Chong Kraben down past the knees + bare lower calves + grey sneakers)
   const mkLeg = (s) => {
     const t = new THREE.Group(); t.position.set(s * 0.21, 1.05, 0);
-    t.add(mesh(cap(0.13, 0.22), pants, 0, -0.23, 0));
+    t.add(mesh(cap(0.18, 0.26), pants, 0, -0.24, 0, 1.15, 1.0, 1.15));
     const sh = new THREE.Group(); sh.position.set(0, -0.46, 0);
-    sh.add(mesh(cap(0.105, 0.26), pants, 0, -0.235, 0));
+    sh.add(mesh(cap(0.14, 0.10), pants, 0, -0.08, 0));
+    sh.add(mesh(cap(0.085, 0.22), skin, 0, -0.26, 0));
     sh.add(mesh(sphG, shoe, 0, -0.49, 0.09, 0.14, 0.1, 0.27));               // sneaker
     sh.add(mesh(boxG, sole, 0, -0.575, 0.09, 0.22, 0.035, 0.42));
     t.add(sh); g.add(t); return { t, s: sh };
@@ -330,11 +326,101 @@ function makeGhost() {
     const k = 2.65 / h;
     model.scale.setScalar(k); model.position.y = 0;
     model.traverse((o) => {
-      if (!o.isMesh) return;
+      if (!o.isMesh || !o.geometry) return;
       o.frustumCulled = false;
-      const joints = /joint/i.test(o.material.name || '');
-      o.material = new THREE.MeshLambertMaterial({
-        color: joints ? 0x222938 : 0x2c3648, emissive: joints ? 0x0a0f18 : 0x121926, fog: false });
+      const geo = o.geometry;
+      const pos = geo.attributes.position;
+      if (pos) {
+        const count = pos.count;
+        const colors = new Float32Array(count * 3);
+        for (let i = 0; i < count; i++) {
+          let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+          const ax = Math.abs(x);
+          let r = 0.92, g = 0.93, b = 0.96;
+
+          if (y > 1.54 && ax < 0.15) {
+            // Collapse Xbot's original robot head inside the neck so only Ghost Tan's 3D head shows
+            x *= 0.15; y = 1.49; z *= 0.15;
+            r = 0.82; g = 0.64; b = 0.50;
+          } else if (y > 1.46 && ax < 0.095) {
+            // Neck (skin tone) + shirt collar at the base
+            if (y < 1.485) {
+              x *= 1.08; z *= 1.08;
+              r = 0.96; g = 0.97; b = 1.0;
+            } else {
+              r = 0.82; g = 0.64; b = 0.50;
+            }
+          } else if (ax > 0.72) {
+            // Hands & fingers (bare skin)
+            r = 0.82; g = 0.64; b = 0.50;
+          } else if (y >= 0.955 || ax >= 0.18) {
+            // White long-sleeve button-up dress shirt (เสื้อเชิ้ตแขนยาวสีขาว)
+            const wrinkle = 0.96 + 0.04 * Math.sin(y * 38 + x * 25);
+            if (ax < 0.22) {
+              // Loose dress-shirt torso
+              const waistBlouse = y < 1.06 ? 1.0 + 0.12 * Math.sin(((y - 0.955) / 0.105) * Math.PI) : 1.07;
+              x *= waistBlouse; z *= waistBlouse * 1.05;
+            } else {
+              // Long white shirt sleeves + wrist cuffs
+              const cuff = ax > 0.67 ? 1.04 : 1.12;
+              y = 1.42 + (y - 1.42) * cuff;
+              z *= cuff;
+            }
+            r = 0.92 * wrinkle; g = 0.93 * wrinkle; b = 0.97 * wrinkle;
+            // Center button placket & pocket details on front of shirt
+            if (z > 0.03 && ax < 0.016 && y > 0.97 && y < 1.46) {
+              z += 0.006;
+              const btn = Math.sin(y * 95) > 0.75 ? 0.78 : 0.88;
+              r = btn; g = btn + 0.01; b = btn + 0.04;
+            } else if (z > 0.04 && x > 0.035 && x < 0.105 && y > 1.20 && y < 1.31) {
+              z += 0.004;
+              r *= 0.95; g *= 0.95; b *= 0.96;
+            }
+            // Subtle blood drops on the white shirt (like the photo)
+            if (z > 0.04 && Math.hypot(x + 0.025, y - 1.12) < 0.014) {
+              r = 0.55; g = 0.06; b = 0.08;
+            }
+          } else if (y >= 0.30) {
+            // Shiny Royal-Blue Chong Kraben (โจงกระเบนผ้ามันสีน้ำเงินเข้มสด)
+            const t = Math.max(0, Math.min(1, (y - 0.30) / 0.655));
+            const lx = x < 0 ? -0.088 : 0.088;
+            const dx = x - lx;
+            const ang = Math.atan2(z, dx);
+            const pleat = Math.sin(ang * 7 + y * 9);
+            const puff = 1.0 + 0.92 * Math.sin(Math.pow(t, 0.72) * Math.PI) + 0.07 * pleat;
+            x = lx + dx * puff;
+            z = z * (puff * 1.08) + (y > 0.52 && Math.abs(x) < 0.07 ? 0.025 : 0);
+            // Rich royal satin blue with deep pleated folds
+            const shade = 0.5 + 0.5 * pleat;
+            r = 0.03 + 0.08 * shade;
+            g = 0.11 + 0.21 * shade;
+            b = 0.55 + 0.42 * shade;
+          } else if (y >= 0.11) {
+            // Bare lower calves / ankles below Chong Kraben (สีเนื้อ)
+            r = 0.80; g = 0.62; b = 0.48;
+          } else {
+            // Grey Yeezy-style sneakers (รองเท้าผ้าใบสีเทา)
+            x *= 1.15; z *= 1.12;
+            const stripe = 0.92 + 0.08 * Math.sin(z * 110 + x * 60);
+            if (y < 0.036) {
+              // Ribbed sneaker sole
+              const rib = 0.94 + 0.06 * Math.sin(z * 160);
+              r = 0.36 * rib; g = 0.38 * rib; b = 0.35 * rib;
+            } else {
+              r = 0.45 * stripe; g = 0.47 * stripe; b = 0.44 * stripe;
+            }
+          }
+          pos.setXYZ(i, x, y, z);
+          colors[i * 3] = r;
+          colors[i * 3 + 1] = g;
+          colors[i * 3 + 2] = b;
+        }
+        pos.needsUpdate = true;
+        geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        geo.computeVertexNormals();
+      }
+      o.material = new THREE.MeshPhongMaterial({
+        vertexColors: true, emissive: 0x1a2030, specular: 0x3550aa, shininess: 46, fog: false });
     });
     root.add(model);
     root.updateMatrixWorld(true);
@@ -355,31 +441,6 @@ function makeGhost() {
       hd.group.scale.setScalar(1);
       wobble.add(hd.group); mount.add(wobble); bone.add(mount);
       gh.head = wobble; gh.mats = hd.mats;
-      // mount Tan's VBAC blazer/tie/lanyard on Spine2 so he wears his school uniform
-      const spine = model.getObjectByName('mixamorigSpine2') || model.getObjectByName('mixamorig:Spine2');
-      if (spine) {
-        const qSpine = new THREE.Quaternion(); spine.getWorldQuaternion(qSpine);
-        const sOffset = qModel.clone().invert().multiply(qSpine).invert();
-        const ss = new THREE.Vector3(); spine.getWorldScale(ss);
-        const sws = ss.x;
-        const chestMat = new THREE.MeshLambertMaterial({
-          map: tex.ghostChest, emissiveMap: tex.ghostChest, emissive: 0x6a7488,
-          color: 0x808898, transparent: true, alphaTest: 0.03, fog: false, side: THREE.DoubleSide });
-        const chestGeo = new THREE.PlaneGeometry(0.76, 0.78, 16, 12);
-        const cp = chestGeo.attributes.position;
-        for (let i = 0; i < cp.count; i++) {
-          const cx = cp.getX(i), cy = cp.getY(i);
-          cp.setZ(i, 0.06 * Math.cos(cx * 2.4) + 0.02 * Math.cos(cy * 2.0));
-        }
-        chestGeo.computeVertexNormals();
-        const chestMesh = new THREE.Mesh(chestGeo, chestMat);
-        const smount = new THREE.Group();
-        smount.quaternion.copy(sOffset);
-        smount.position.copy(new THREE.Vector3(0, -0.02, 0.24).applyQuaternion(sOffset).divideScalar(sws));
-        smount.scale.setScalar(1 / sws);
-        smount.add(chestMesh); spine.add(smount);
-        gh.mats.push(chestMat);
-      }
     }
     gh.mixer = new THREE.AnimationMixer(model);
     const clip = gltf.animations.find((c) => c.name === 'run') || gltf.animations[0];
