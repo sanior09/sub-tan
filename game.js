@@ -564,6 +564,8 @@ function goToMenu() {
   ui.hint.style.display = 'none';
   ui.menu.style.display = 'flex';
 }
+window.triggerStart = start;
+window.triggerDie = die;
 function die() {
   paused = false;
   ui.pauseOverlay.style.display = 'none';

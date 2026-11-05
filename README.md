@@ -42,19 +42,19 @@
       <img src="Image/preview-intro.jpg" alt="ฉากบนบานหน้าศาล" style="border-radius: 8px; width: 100%; object-fit: cover;" />
       <br /><br />
       <b>⛩️ ฉากเปิดไหว้ศาลเจ้าพ่อตาล</b><br>
-      <sub>ก้มกราบขอพรพร้อมเครื่องเซ่นไหว้แฟนต้าแดง พวงมาลัย และผีตาลที่ยืนชะโงกแอบดูอยู่ด้านหลัง</sub>
+      <sub>น้องนักเรียนประถมก้มกราบขอพรหน้าศาลพระภูมิสีทองคู่ พร้อมเครื่องเซ่นแฟนต้าแดง พวงมาลัย และผีตาลยืนจ้องอยู่ข้างศาล</sub>
     </td>
     <td align="center" width="33%">
-      <img src="Image/preview-gameplay.jpg" alt="ระบบวิ่ง 3 เลนพร้อมกล้องหน้า PiP" style="border-radius: 8px; width: 100%; object-fit: cover;" />
+      <img src="Image/preview-gameplay.jpg" alt="ระบบวิ่ง 3 เลนพร้อมกล้องส่องหลัง PiP" style="border-radius: 8px; width: 100%; object-fit: cover;" />
       <br /><br />
-      <b>🏃‍♂️ วิ่ง 3 เลน & กล้องหน้า PiP</b><br>
-      <sub>หลบสิ่งกีดขวาง เก็บพวงมาลัยดอกมะลิ พร้อมหน้าต่างกล้องหลังตรวจจับการเข้าประชิดตัวแบบเรียลไทม์</sub>
+      <b>🏃‍♂️ น้องนักเรียนวิ่ง 3 เลน & กล้องหลัง PiP</b><br>
+      <sub>พาน้องนักเรียนสับตีนแตกหลบสิ่งกีดขวาง เก็บพวงมาลัยมะลิ พร้อมหน้าต่างกล้องหลังส่องผีตาลวิ่งตามแบบเรียลไทม์</sub>
     </td>
     <td align="center" width="33%">
-      <img src="Image/preview-gameover.jpg" alt="ฉากจบเมื่อผีตาลจับได้" style="border-radius: 8px; width: 100%; object-fit: cover;" />
+      <img src="Image/preview-gameover.jpg" alt="ฉากจบเมื่อผีตาลจับได้และปุ่มเมนู" style="border-radius: 8px; width: 100%; object-fit: cover;" />
       <br /><br />
       <b>😱 ผีตาลจับได้แล้ว!</b><br>
-      <sub>กระโดดสะดุดจนโดนผีตาลจับพร้อมเสียง Jump Scare หลอนสะพรึง รายงานสถิติระยะทางและจำนวนพวงมาลัย</sub>
+      <sub>ฉาก Jump Scare เมื่อผีตาลประชิดตัว รายงานสถิติระยะทางและพวงมาลัย พร้อมปุ่ม "แก้บนใหม่อีกครั้ง" และปุ่ม "🏠 กลับสู่เมนู"</sub>
     </td>
   </tr>
 </table>
