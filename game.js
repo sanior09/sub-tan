@@ -154,33 +154,79 @@ scene.add(ground);
 // ============================================================ scenery
 const SCENERY_MAT = (function () {
   const src = window.SCENERY_PNG || {};
-  function loadMat(b64, em) {
+  function loadPair(b64, colFront, emFront, colBack, emBack) {
     const tex = new THREE.Texture();
     if (b64) {
       const img = new Image();
       img.onload = () => { tex.image = img; tex.needsUpdate = true; };
       img.src = b64.indexOf('data:') === 0 ? b64 : 'data:image/png;base64,' + b64;
     }
-    return new THREE.MeshLambertMaterial({
-      map: tex, emissiveMap: tex, color: 0xffffff, emissive: em || 0xa0a0a0,
-      transparent: true, alphaTest: 0.12, side: THREE.DoubleSide
+    const front = new THREE.MeshLambertMaterial({
+      map: tex, emissiveMap: tex, color: colFront, emissive: emFront,
+      transparent: true, alphaTest: 0.14, side: THREE.DoubleSide
     });
+    const back = new THREE.MeshLambertMaterial({
+      map: tex, emissiveMap: tex, color: colBack, emissive: emBack,
+      transparent: true, alphaTest: 0.18, side: THREE.DoubleSide
+    });
+    return { front, back };
   }
+  // Soft radial ground shadow texture
+  const sc = document.createElement('canvas'); sc.width = sc.height = 128;
+  const sx = sc.getContext('2d');
+  const sg = sx.createRadialGradient(64, 64, 6, 64, 64, 62);
+  sg.addColorStop(0, 'rgba(0,0,0,0.78)');
+  sg.addColorStop(0.55, 'rgba(0,0,0,0.38)');
+  sg.addColorStop(1, 'rgba(0,0,0,0)');
+  sx.fillStyle = sg; sx.fillRect(0, 0, 128, 128);
+  const shadowMat = new THREE.MeshBasicMaterial({
+    map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false
+  });
+  // Warm candle glow halo texture for spirit houses
+  const gc = document.createElement('canvas'); gc.width = gc.height = 128;
+  const gx = gc.getContext('2d');
+  const gg = gx.createRadialGradient(64, 64, 3, 64, 64, 62);
+  gg.addColorStop(0, 'rgba(255,195,95,0.65)');
+  gg.addColorStop(0.4, 'rgba(255,120,40,0.22)');
+  gg.addColorStop(1, 'rgba(0,0,0,0)');
+  gx.fillStyle = gg; gx.fillRect(0, 0, 128, 128);
+  const candleHaloMat = new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(gc), blending: THREE.AdditiveBlending,
+    transparent: true, depthWrite: false
+  });
+
   return {
+    shadowMat,
+    candleHaloMat,
     shrines: [
-      loadMat(src.shrine1, 0xb8b0a8), // ศาลพระภูมิไม้สักสีเข้ม
-      loadMat(src.shrine2, 0xa8a098), // ศาลพระภูมิสีทองแดงทรงสูง
-      loadMat(src.shrine3, 0xa8a098)  // ศาลตายายสีทองแดง
+      loadPair(src.shrine1, 0xe8ddd2, 0x726458, 0x605246, 0x261e18), // ศาลพระภูมิไม้สักสีเข้ม
+      loadPair(src.shrine2, 0xded4c8, 0x5e5244, 0x584432, 0x241a10), // ศาลพระภูมิสีทองแดงทรงสูง
+      loadPair(src.shrine3, 0xded4c8, 0x5e5244, 0x584432, 0x241a10)  // ศาลตายายสีทองแดง
     ],
     trees: [
-      loadMat(src.tree1, 0x98a898),   // ต้นไม้ใบเขียวพุ่มใหญ่
-      loadMat(src.tree2, 0x98a898)    // ต้นมะม่วงมีลูกมะม่วงห้อย
+      loadPair(src.tree1, 0xb8ccb8, 0x465646, 0x506450, 0x1e281e),   // ต้นไม้ใบเขียวพุ่มใหญ่
+      loadPair(src.tree2, 0xb8ccb8, 0x485846, 0x506450, 0x1e281e)    // ต้นมะม่วงมีลูกมะม่วงห้อย
     ]
   };
 })();
 let treeSeq = 0;
 let shrineSeq = 0;
 let decorSeq = 0;
+
+function makeCurvedPlane(w, h, curveZ) {
+  const geo = new THREE.PlaneGeometry(w, h, 9, 6);
+  const pos = geo.attributes.position;
+  const halfW = w * 0.5;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i);
+    const nx = x / halfW;
+    // Gentle 3D cylindrical dome curve across X and upper canopy Y
+    const dome = (1 - nx * nx) * curveZ;
+    pos.setZ(i, dome);
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
 
 function makeLanternPost() {
   const g = new THREE.Group();
@@ -192,34 +238,73 @@ function makeLanternPost() {
 function makeTree(side) {
   const g = new THREE.Group();
   const idx = (treeSeq++) % SCENERY_MAT.trees.length;
-  const mat = SCENERY_MAT.trees[idx];
-  const scale = 0.92 + Math.random() * 0.24;
-  const w = (idx === 1 ? 4.8 : 4.5) * scale;
-  const h = (idx === 1 ? 5.2 : 5.4) * scale;
-  const geo = new THREE.PlaneGeometry(w, h);
-  const p1 = new THREE.Mesh(geo, mat);
-  p1.position.y = h * 0.48;
-  p1.rotation.y = (side || 1) * -0.18;
-  g.add(p1);
-  // Secondary crossed plane for 3D depth when passing by
-  const p2 = new THREE.Mesh(geo, mat);
-  p2.position.y = h * 0.48;
-  p2.rotation.y = (side || 1) * -0.18 + Math.PI * 0.38;
-  g.add(p2);
+  const pair = SCENERY_MAT.trees[idx];
+  const scale = 0.94 + Math.random() * 0.22;
+  const w = (idx === 1 ? 4.6 : 4.5) * scale;
+  const h = (idx === 1 ? 5.2 : 5.3) * scale;
+
+  // 1. Soft dark ground contact shadow + 3D grassy earth mound at the base
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.85, w * 0.85), SCENERY_MAT.shadowMat);
+  sh.rotation.x = -Math.PI / 2; sh.position.y = 0.015;
+  g.add(sh);
+  g.add(mk(GEO.cyl, MAT.leaf, 0.65 * scale, 0.12, 0.65 * scale, 0, 0.05, 0));
+  // 2. Solid 3D cylindrical tree trunk at the base so there is NEVER a flat or double trunk
+  g.add(mk(GEO.cyl, MAT.darkwood, 0.17 * scale, 1.45 * scale, 0.22 * scale, 0, 0.72 * scale, -0.05));
+
+  // 3. Curved 3D front canopy + darker volumetric back canopy layer (aligned on a single trunk!)
+  const body = new THREE.Group();
+  body.rotation.y = (side || 1) * -0.16;
+  const frontGeo = makeCurvedPlane(w, h, 0.38);
+  const pFront = new THREE.Mesh(frontGeo, pair.front);
+  pFront.position.set(0, h * 0.48, 0.06);
+  body.add(pFront);
+
+  const backGeo = makeCurvedPlane(w * 0.96, h * 0.96, -0.28);
+  const pBack = new THREE.Mesh(backGeo, pair.back);
+  pBack.position.set((side || 1) * 0.08, h * 0.49, -0.24);
+  body.add(pBack);
+
+  g.add(body);
   return g;
 }
-function makeSpiritHouse(side) {     // ศาลพระภูมิข้างทาง (สลับ 3 แบบจากรูปจริง)
+function makeSpiritHouse(side) {     // ศาลพระภูมิข้างทาง (3D Volumetric + ฐานปูน + แสงเทียนยามค่ำคืน)
   const g = new THREE.Group();
   const idx = (shrineSeq++) % SCENERY_MAT.shrines.length;
-  const mat = SCENERY_MAT.shrines[idx];
-  const w = idx === 0 ? 2.5 : idx === 1 ? 2.2 : 2.5;
-  const h = idx === 0 ? 3.8 : idx === 1 ? 3.9 : 3.5;
-  const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
-  p.position.y = h * 0.49;
-  p.rotation.y = (side || 1) * -0.26;
-  g.add(p);
-  const glow = mk(GEO.sph, MAT.lamp, 0.07, 0.07, 0.07, 0, h * 0.56, 0.22);
-  g.add(glow);
+  const pair = SCENERY_MAT.shrines[idx];
+  const w = idx === 0 ? 2.45 : idx === 1 ? 2.15 : 2.45;
+  const h = idx === 0 ? 3.75 : idx === 1 ? 3.85 : 3.45;
+
+  // 1. Ground contact shadow + 3D stepped concrete plinth (ฐานปูนวางศาล 3 มิติ)
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 2.8), SCENERY_MAT.shadowMat);
+  sh.rotation.x = -Math.PI / 2; sh.position.y = 0.015;
+  g.add(sh);
+  g.add(mk(GEO.box, MAT.stone, 1.55, 0.12, 1.45, 0, 0.06, 0));
+  g.add(mk(GEO.box, idx === 0 ? MAT.darkwood : MAT.gold, 1.25, 0.08, 1.18, 0, 0.15, 0));
+
+  // 2. Multi-layer 3D extruded spirit house body (gives real 3D thickness to the roof, cabin & pillar)
+  const body = new THREE.Group();
+  body.rotation.y = (side || 1) * -0.24;
+  const geo = makeCurvedPlane(w, h, 0.14);
+  const pFront = new THREE.Mesh(geo, pair.front);
+  pFront.position.set(0, h * 0.49 + 0.10, 0.08);
+  body.add(pFront);
+
+  [-0.04, -0.14, -0.24].forEach((dz) => {
+    const pSlice = new THREE.Mesh(geo, pair.back);
+    pSlice.position.set(0, h * 0.49 + 0.10, dz);
+    body.add(pSlice);
+  });
+
+  // 3. Warm candle flame + soft radial candlelight halo illuminating the shrine at night
+  const flameY = h * 0.56 + 0.10;
+  const glow = mk(GEO.sph, MAT.lamp, 0.055, 0.075, 0.055, 0, flameY, 0.26);
+  body.add(glow);
+  const halo = new THREE.Sprite(SCENERY_MAT.candleHaloMat);
+  halo.scale.set(1.65, 1.65, 1);
+  halo.position.set(0, flameY + 0.12, 0.28);
+  body.add(halo);
+
+  g.add(body);
   return g;
 }
 
