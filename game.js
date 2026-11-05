@@ -312,33 +312,30 @@ function makeSpiritHouse(side) {     // ศาลพระภูมิข้า�
 const shrineGroup = (function makeTanShrine() {
   const g = new THREE.Group();
   const pair = SCENERY_MAT.shrines[2]; // ศาลเจ้าพ่อสีทอง-แดงทรงเรือนไทยพร้อมโต๊ะวางเครื่องเซ่น
-  const w = 2.75, h = 3.60;
-  const baseY = 0.12;
+  const w = 2.65, h = 3.50;
 
-  // 1. Soft radial ground shadow + 3D stepped stone & gold plinth
-  const sh = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 3.4), SCENERY_MAT.shadowMat);
+  // 1. Soft radial ground shadow directly under the real golden pedestal
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 3.0), SCENERY_MAT.shadowMat);
   sh.rotation.x = -Math.PI / 2; sh.position.y = 0.015;
   g.add(sh);
-  g.add(mk(GEO.box, MAT.stone, 1.95, 0.12, 1.75, 0, 0.06, 0));
-  g.add(mk(GEO.box, MAT.gold, 1.65, 0.08, 1.45, 0, 0.14, 0));
 
-  // 2. Multi-layer 3D volumetric real spirit house body
-  const geo = makeCurvedPlane(w, h, 0.16);
+  // 2. Multi-layer 3D volumetric real spirit house body sitting flush on the ground
+  const geo = makeCurvedPlane(w, h, 0.12);
   const pFront = new THREE.Mesh(geo, pair.front);
-  pFront.position.set(0.10, baseY + h * 0.5, 0.10);
+  pFront.position.set(0.08, h * 0.49, 0.08);
   g.add(pFront);
-  [-0.04, -0.16, -0.28].forEach((dz) => {
+  [-0.04, -0.14, -0.24].forEach((dz) => {
     const pSlice = new THREE.Mesh(geo, pair.back);
-    pSlice.position.set(0.10, baseY + h * 0.5, dz);
+    pSlice.position.set(0.08, h * 0.49, dz);
     g.add(pSlice);
   });
 
-  // 3. Glowing portrait of เจ้าพ่อตาล mounted inside the real shrine's open cabin doorway
-  const cx = -0.06, cy = 2.26;
+  // 3. Glowing portrait of เจ้าพ่อตาล mounted inside the real shrine's open cabin doorway (in front of curved plane!)
+  const cx = -0.10, cy = 2.14;
   const portraitMat = new THREE.MeshBasicMaterial({
     map: C.tex.ghostFace, transparent: true, fog: false
   });
-  const portrait = new THREE.Mesh(new THREE.PlaneGeometry(0.66, 0.70), portraitMat);
+  const portrait = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.66), portraitMat);
   portrait.position.set(cx, cy, 0.25);
   g.add(portrait);
 
@@ -349,40 +346,40 @@ const shrineGroup = (function makeTanShrine() {
   sx.strokeStyle = '#ffcc33'; sx.lineWidth = 6; sx.strokeRect(3, 3, 314, 66);
   sx.fillStyle = '#ffdd55'; sx.font = 'bold 34px Sarabun, Tahoma, sans-serif';
   sx.textAlign = 'center'; sx.textBaseline = 'middle'; sx.fillText('ศาลเจ้าพ่อตาล', 160, 38);
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.18, 0.26),
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 0.25),
     new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), fog: false }));
-  sign.position.set(cx, 2.74, 0.28);
+  sign.position.set(cx + 0.04, 2.58, 0.26);
   g.add(sign);
 
-  // 5. Offerings arranged on the real shrine's golden front offering table (y ~ 1.66)
-  const tableY = 1.66, tableZ = 0.30;
+  // 5. Offerings arranged on the real shrine's golden front offering table (y ~ 1.52)
+  const tableY = 1.52, tableZ = 0.28;
   const redDrink = new THREE.MeshBasicMaterial({ color: 0xff1e27 });
   const greenStraw = new THREE.MeshBasicMaterial({ color: 0x32ff6a });
-  g.add(mk(GEO.cyl, redDrink, 0.065, 0.26, 0.065, -0.34, tableY + 0.13, tableZ));
-  g.add(mk(GEO.cyl, greenStraw, 0.012, 0.20, 0.012, -0.32, tableY + 0.30, tableZ));
-  g.add(mk(GEO.cyl, MAT.gold, 0.085, 0.13, 0.085, 0.06, tableY + 0.06, tableZ));  // incense pot
+  g.add(mk(GEO.cyl, redDrink, 0.062, 0.25, 0.062, -0.32, tableY + 0.12, tableZ));
+  g.add(mk(GEO.cyl, greenStraw, 0.012, 0.19, 0.012, -0.30, tableY + 0.28, tableZ));
+  g.add(mk(GEO.cyl, MAT.gold, 0.082, 0.12, 0.082, 0.06, tableY + 0.06, tableZ));  // incense pot
   [-0.03, 0, 0.03].forEach((dx) => {
-    g.add(mk(GEO.cyl, MAT.red, 0.009, 0.20, 0.009, 0.06 + dx, tableY + 0.20, tableZ));
-    g.add(mk(GEO.sph, MAT.lamp, 0.02, 0.02, 0.02, 0.06 + dx, tableY + 0.31, tableZ));
+    g.add(mk(GEO.cyl, MAT.red, 0.009, 0.19, 0.009, 0.06 + dx, tableY + 0.19, tableZ));
+    g.add(mk(GEO.sph, MAT.lamp, 0.02, 0.02, 0.02, 0.06 + dx, tableY + 0.30, tableZ));
   });
-  [-0.16, 0.28].forEach((xPos) => {                                                 // candles
-    g.add(mk(GEO.cyl, MAT.gold, 0.022, 0.17, 0.022, xPos, tableY + 0.08, tableZ));
-    g.add(mk(GEO.sph, MAT.lamp, 0.032, 0.048, 0.032, xPos, tableY + 0.19, tableZ));
+  [-0.14, 0.26].forEach((xPos) => {                                                 // candles
+    g.add(mk(GEO.cyl, MAT.gold, 0.022, 0.16, 0.022, xPos, tableY + 0.08, tableZ));
+    g.add(mk(GEO.sph, MAT.lamp, 0.032, 0.048, 0.032, xPos, tableY + 0.18, tableZ));
   });
   const gar = new THREE.Mesh(GEO.garlandPlane, MAT.garlandPic);
-  gar.scale.setScalar(0.54);
-  gar.position.set(0.48, tableY + 0.14, tableZ + 0.04);
+  gar.scale.setScalar(0.52);
+  gar.position.set(0.46, tableY + 0.13, tableZ + 0.04);
   g.add(gar);
 
   const halo = new THREE.Sprite(SCENERY_MAT.candleHaloMat);
-  halo.scale.set(2.2, 2.2, 1);
-  halo.position.set(0.06, tableY + 0.28, tableZ + 0.08);
+  halo.scale.set(2.1, 2.1, 1);
+  halo.position.set(0.06, tableY + 0.26, tableZ + 0.08);
   g.add(halo);
 
   const sLight = new THREE.PointLight(0xffb85c, 1.6, 9);
-  sLight.position.set(0, 2.3, 1.2);
+  sLight.position.set(0, 2.2, 1.2);
   g.add(sLight);
-  g.scale.setScalar(1.12);
+  g.scale.setScalar(1.06);
   scene.add(g);
   return g;
 })();
@@ -534,7 +531,7 @@ function reset() {
   lane = 1; px = 0; py = 0; vy = 0; slideT = 0; invuln = 0; stumble = 0; shake = 0;
   sinceRow = 0; rowSpacing = 26; sinceDecor = 0; hbTimer = 0; deadT = 0;
   playerRoot.rotation.set(0, 0, 0); playerRoot.visible = true;
-  shrineGroup.position.set(-1.85, 0, -0.35);
+  shrineGroup.position.set(-1.50, 0, -0.55);
   shrineGroup.rotation.y = 0.82;
   shrineGroup.visible = true;
   ghost.group.rotation.set(-0.14, Math.PI, 0); ghostRoot.scale.setScalar(1.3);
@@ -787,11 +784,11 @@ function update(dt) {
   const flick = 0.93 + Math.sin(clock * 23) * 0.04 + (Math.random() < 0.04 ? -0.25 : 0);
   ghost.mats.forEach((m) => { m.opacity = flick; });
   if (state === 'menu') {
-    // Ghost Tan haunts beside/behind ศาลเจ้าพ่อตาล, peeking out while the robot prays!
-    ghostRoot.position.set(-3.05 + Math.sin(clock * 1.4) * 0.12, 0.28 + Math.sin(clock * 2.6) * 0.12, 0.25);
-    ghostRoot.rotation.z = -0.12 + Math.sin(clock * 1.8) * 0.05;
+    // Ghost Tan stands clearly beside the left of ศาลเจ้าพ่อตาล without clipping into the shrine!
+    ghostRoot.position.set(-3.45 + Math.sin(clock * 1.4) * 0.08, 0.24 + Math.sin(clock * 2.6) * 0.10, 0.65);
+    ghostRoot.rotation.z = -0.08 + Math.sin(clock * 1.8) * 0.04;
     ghost.group.rotation.set(-0.04, 0.72, 0);
-    ghostRoot.scale.setScalar(1.18);
+    ghostRoot.scale.setScalar(1.15);
   } else {
     let targetGz = gap;
     if (state === 'dead') targetGz = 3.4;
@@ -820,8 +817,8 @@ function update(dt) {
   const ox = (Math.random() - 0.5) * sh * 0.5, oy = (Math.random() - 0.5) * sh * 0.5;
   shake = Math.max(0, shake - dt * 2.2);
   const cx = px * 0.65;
-  const introPos = { x: 2.15 + Math.sin(clock * 0.8) * 0.08, y: 2.35 + Math.cos(clock * 0.9) * 0.05, z: 3.85 };
-  const introLook = { x: -0.85, y: 1.85, z: -0.05 };
+  const introPos = { x: 2.15 + Math.sin(clock * 0.8) * 0.08, y: 2.35 + Math.cos(clock * 0.9) * 0.05, z: 3.95 };
+  const introLook = { x: -1.05, y: 1.85, z: -0.05 };
   if (state === 'menu') {
     mainCam.position.set(introPos.x, introPos.y, introPos.z);
     mainCam.lookAt(introLook.x, introLook.y, introLook.z);
