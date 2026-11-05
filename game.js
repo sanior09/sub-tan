@@ -353,9 +353,10 @@ const $ = (id) => document.getElementById(id);
 const ui = {
   hud: $('hud'), score: $('score'), offerN: $('offerN'), bar: $('barfill'), hint: $('hint'),
   pip: $('pip'), vig: $('vig'), flash: $('flash'), menu: $('menu'), over: $('over'),
+  pauseOverlay: $('pauseOverlay'), pauseBtn: $('pauseBtn'),
   fScore: $('fScore'), fOffer: $('fOffer'), fBest: $('fBest'),
 };
-let state = 'menu';
+let state = 'menu', paused = false;
 let speed = 16, speedMul = 1, dist = 0, offerCount = 0, tPlay = 0, gap = GHOST_START_GAP, gz = GHOST_START_GAP, gx = 0;
 let lane = 1, px = 0, py = 0, vy = 0, slideT = 0, invuln = 0, stumble = 0, shake = 0, runPhase = 0;
 let hbTimer = 0, deadT = 0, clock = 0;
@@ -386,14 +387,24 @@ function reset() {
 function start() {
   initAudio();
   reset();
+  paused = false;
   state = 'play';
   sfx.hit();
   shake = 0.45;
-  ui.menu.style.display = 'none'; ui.over.style.display = 'none';
+  ui.menu.style.display = 'none'; ui.over.style.display = 'none'; ui.pauseOverlay.style.display = 'none';
   ui.hud.style.display = 'block'; ui.pip.style.display = 'block'; ui.hint.style.display = 'block';
   setTimeout(() => (ui.hint.style.display = state === 'play' ? 'none' : ui.hint.style.display), 7000);
 }
+function togglePause(force) {
+  if (state !== 'play') return;
+  paused = typeof force === 'boolean' ? force : !paused;
+  touch = null;
+  ui.pauseOverlay.style.display = paused ? 'flex' : 'none';
+  ui.pauseBtn.textContent = paused ? '▶ เล่นต่อ' : '⏸ พักเกม';
+}
 function die() {
+  paused = false;
+  ui.pauseOverlay.style.display = 'none';
   state = 'dead'; deadT = 0;
   sfx.scream();
   ui.flash.style.opacity = 1;
@@ -404,19 +415,21 @@ function die() {
 }
 
 // ============================================================ input
-function moveLane(d) { if (state !== 'play') return; lane = Math.max(0, Math.min(2, lane + d)); }
+function moveLane(d) { if (state !== 'play' || paused) return; lane = Math.max(0, Math.min(2, lane + d)); }
 function jump() {
-  if (state !== 'play') return;
+  if (state !== 'play' || paused) return;
   if (py <= 0.001) { vy = JUMP_V; slideT = 0; sfx.jump(); }
 }
 function slide() {
-  if (state !== 'play') return;
+  if (state !== 'play' || paused) return;
   if (py > 0.05) vy = -22;
   slideT = 0.75;
 }
 window.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
   if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', ' '].includes(k)) e.preventDefault();
+  if (k === 'escape' || k === 'p') { togglePause(); return; }
+  if (paused) return;
   if (k === 'arrowleft' || k === 'a') moveLane(-1);
   else if (k === 'arrowright' || k === 'd') moveLane(1);
   else if (k === 'arrowup' || k === 'w' || k === ' ') jump();
@@ -467,6 +480,10 @@ window.addEventListener('mouseup', (e) => swipeEnd(e.clientX, e.clientY));
 $('startBtn').addEventListener('click', (e) => { e.stopPropagation(); start(); });
 ui.menu.addEventListener('click', () => { if (state === 'menu') start(); });
 $('retryBtn').addEventListener('click', start);
+ui.pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePause(); });
+ui.pauseBtn.addEventListener('touchstart', (e) => { e.stopPropagation(); }, { passive: true });
+$('resumeBtn').addEventListener('click', (e) => { e.stopPropagation(); togglePause(false); });
+$('restartBtn').addEventListener('click', (e) => { e.stopPropagation(); start(); });
 
 // ============================================================ update
 function animateRunner(dt, running) {
@@ -714,8 +731,9 @@ function render() {
 
 let last = performance.now();
 function loop(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  update(dt); render();
+  const dt = paused ? 0 : Math.min(0.05, (now - last) / 1000); last = now;
+  if (!paused) update(dt);
+  render();
   requestAnimationFrame(loop);
 }
 reset();

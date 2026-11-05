@@ -37,6 +37,13 @@
   .barlabel{font-size:12px;font-weight:700;opacity:.85;margin-bottom:3px;text-shadow:0 1px 4px #000}
   .bar{height:12px;border-radius:8px;background:rgba(255,255,255,.12);overflow:hidden;border:1px solid rgba(255,255,255,.25)}
   #barfill{height:100%;width:100%;background:linear-gradient(90deg,#42e695,#3bb2b8);transition:background .2s}
+  #pauseBtn{pointer-events:auto;margin-top:6px;padding:7px 16px;font:800 14px "Sarabun",Tahoma,sans-serif;
+    width:fit-content;border-radius:20px;background:rgba(15,18,32,.82);border:1.5px solid rgba(255,255,255,.4);
+    box-shadow:0 4px 12px rgba(0,0,0,.6);display:flex;align-items:center;gap:6px}
+  #pauseOverlay{display:none;z-index:10;background:radial-gradient(ellipse at center,rgba(10,12,28,.8),rgba(0,0,0,.92))}
+  .pause-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:18px}
+  .pause-btns button{margin-top:0}
+  .btn-sec{background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.45);box-shadow:none}
   #hint{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);font-size:14px;opacity:.65;
     text-shadow:0 1px 4px #000;pointer-events:none;display:none;white-space:nowrap}
 
@@ -105,9 +112,19 @@
       <div class="barlabel">ระยะห่างจากผีตาล</div>
       <div class="bar"><div id="barfill"></div></div>
     </div>
+    <button id="pauseBtn" type="button">⏸ พักเกม</button>
   </div>
 </div>
-<div id="hint">← → เปลี่ยนเลน &nbsp;|&nbsp; ↑ / Space กระโดด &nbsp;|&nbsp; ↓ สไลด์ (ลอดคาน)</div>
+<div id="hint">← → เปลี่ยนเลน &nbsp;|&nbsp; ↑ / Space กระโดด &nbsp;|&nbsp; ↓ สไลด์ &nbsp;|&nbsp; P / Esc พักเกม</div>
+
+<div id="pauseOverlay" class="overlay">
+  <h1>⏸ พัก<span>เหนื่อย</span>แป๊บ</h1>
+  <p>ระวังนะ... ผีตาลกำลังยืนเหลือกตารออยู่ข้างหลัง!</p>
+  <div class="pause-btns">
+    <button id="resumeBtn" type="button">▶ วิ่งหนีต่อ!</button>
+    <button id="restartBtn" type="button" class="btn-sec">🔄 เริ่มแก้บนใหม่</button>
+  </div>
+</div>
 
 <div id="menu" class="overlay">
   <div class="menu-top">
