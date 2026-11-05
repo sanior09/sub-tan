@@ -44,7 +44,19 @@ const GEO = {
   pyr: new THREE.ConeGeometry(1, 1, 4).rotateY(Math.PI / 4),
   sph: new THREE.SphereGeometry(1, 14, 10),
   garland: new THREE.TorusGeometry(0.3, 0.1, 8, 18),
+  garlandPlane: new THREE.PlaneGeometry(0.95, 0.95),
 };
+const garlandTex = (() => {
+  const t = new THREE.Texture();
+  if (window.GARLAND_PNG) {
+    const im = new Image();
+    im.onload = () => { t.image = im; t.needsUpdate = true; };
+    im.src = window.GARLAND_PNG;
+    const icon = document.getElementById('garlandIcon');
+    if (icon) icon.src = window.GARLAND_PNG;
+  }
+  return t;
+})();
 const MAT = {
   wood: new THREE.MeshLambertMaterial({ color: 0x4a3326 }),
   darkwood: new THREE.MeshLambertMaterial({ color: 0x2a1c14 }),
@@ -55,6 +67,8 @@ const MAT = {
   lamp: new THREE.MeshBasicMaterial({ color: 0xff4a2a }),
   garland: new THREE.MeshBasicMaterial({ color: 0xffb81f }),
   garlandB: new THREE.MeshBasicMaterial({ color: 0xff6a1a }),
+  garlandPic: new THREE.MeshBasicMaterial({
+    map: garlandTex, transparent: true, alphaTest: 0.08, side: THREE.DoubleSide, fog: false }),
 };
 
 function stripeTexture() {
@@ -213,8 +227,8 @@ const shrineGroup = (function makeTanShrine() {
     g.add(mk(GEO.cyl, MAT.gold, 0.022, 0.18, 0.022, dx, 1.66, 0.58));
     g.add(mk(GEO.sph, MAT.lamp, 0.032, 0.048, 0.032, dx, 1.78, 0.58));
   });
-  const gar = new THREE.Mesh(GEO.garland, MAT.garland);
-  gar.scale.setScalar(0.5); gar.rotation.x = Math.PI / 2; gar.position.set(0.44, 1.61, 0.56); g.add(gar);
+  const gar = new THREE.Mesh(GEO.garlandPlane, MAT.garlandPic);
+  gar.scale.setScalar(0.56); gar.position.set(0.46, 1.72, 0.62); g.add(gar);
   const sLight = new THREE.PointLight(0xffb85c, 1.6, 9);
   sLight.position.set(0, 2.3, 1.2); g.add(sLight);
   g.scale.setScalar(1.15);
@@ -267,8 +281,8 @@ function spawnObstacle(lane, type, z) {
 }
 function spawnOffering(lane, z, y) {
   const m = new THREE.Group();
-  m.add(new THREE.Mesh(GEO.garland, MAT.garland));
-  const inner = new THREE.Mesh(GEO.garland, MAT.garlandB); inner.scale.setScalar(0.62); m.add(inner);
+  const pic = new THREE.Mesh(GEO.garlandPlane, MAT.garlandPic);
+  m.add(pic);
   m.position.set((lane - 1) * LANE_W, y, z);
   scene.add(m);
   offerings.push({ mesh: m, lane, got: false });

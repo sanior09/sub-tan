@@ -16,7 +16,8 @@
   #hud .row{position:absolute;left:16px;top:14px;display:flex;flex-direction:column;gap:8px}
   .stat{font-weight:800;font-size:26px;letter-spacing:.5px;text-shadow:0 2px 8px #000}
   .stat small{font-size:13px;font-weight:700;opacity:.75;margin-left:4px}
-  #offer{color:#ffd24a}
+  #offer{color:#ffd24a;display:flex;align-items:center;gap:4px}
+  #garlandIcon{width:34px;height:34px;object-fit:contain;filter:drop-shadow(0 2px 5px rgba(0,0,0,.85))}
   .barwrap{width:min(240px,45vw)}
   .barlabel{font-size:12px;font-weight:700;opacity:.85;margin-bottom:3px;text-shadow:0 1px 4px #000}
   .bar{height:12px;border-radius:8px;background:rgba(255,255,255,.12);overflow:hidden;border:1px solid rgba(255,255,255,.25)}
@@ -84,7 +85,7 @@
 <div id="hud">
   <div class="row">
     <div class="stat"><span id="score">0</span><small>เมตร</small></div>
-    <div class="stat" id="offer">🌼 <span id="offerN">0</span><small>พวงมาลัย</small></div>
+    <div class="stat" id="offer"><img id="garlandIcon" alt="พวงมาลัย"><span id="offerN">0</span><small>พวงมาลัย</small></div>
     <div class="barwrap">
       <div class="barlabel">ระยะห่างจากผีตาล</div>
       <div class="bar"><div id="barfill"></div></div>
