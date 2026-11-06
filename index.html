@@ -44,27 +44,41 @@
   #pauseBtn{pointer-events:auto;margin-top:6px;padding:7px 16px;font:800 14px "Sarabun",Tahoma,sans-serif;
     width:fit-content;border-radius:20px;background:rgba(15,18,32,.82);border:1.5px solid rgba(255,255,255,.4);
     box-shadow:0 4px 12px rgba(0,0,0,.6);display:flex;align-items:center;gap:6px}
-  #krahangBadge{display:none;background:rgba(20,24,42,.92);border:2px solid #ffd23a;border-radius:14px;
-    padding:8px 14px;width:fit-content;box-shadow:0 4px 20px rgba(255,210,58,.45);pointer-events:none;
-    margin-top:4px;animation:krahangGlow 1.2s infinite alternate}
-  @keyframes krahangGlow{from{box-shadow:0 4px 14px rgba(255,210,58,.3)}to{box-shadow:0 4px 24px rgba(255,210,58,.75)}}
-  .k-title{font-size:13px;font-weight:800;color:#ffea75;letter-spacing:.5px;text-shadow:0 1px 4px #000;margin-bottom:4px}
-  #saiSinBadge{display:none;background:rgba(18,26,46,.94);border:2px solid #67e8f9;border-radius:14px;
-    padding:7px 14px;width:fit-content;box-shadow:0 4px 20px rgba(103,232,249,.45);pointer-events:none;
-    margin-top:4px;animation:saiSinGlow 1.2s infinite alternate}
-  @keyframes saiSinGlow{from{box-shadow:0 4px 14px rgba(103,232,249,.3)}to{box-shadow:0 4px 24px rgba(103,232,249,.75)}}
-  .s-title{font-size:12.5px;font-weight:800;color:#cffafe;letter-spacing:.4px;text-shadow:0 1px 4px #000;margin-bottom:4px}
-  .s-bar{height:6px;width:150px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;border:1px solid rgba(103,232,249,.3)}
-  #saiSinBarFill{height:100%;width:100%;background:linear-gradient(90deg,#67e8f9,#38bdf8);border-radius:4px;transition:width .08s linear}
-  #fantaBadge{display:none;background:rgba(36,12,18,.94);border:2px solid #ef4444;border-radius:14px;
-    padding:7px 14px;width:fit-content;box-shadow:0 4px 20px rgba(239,68,68,.5);pointer-events:none;
-    margin-top:4px;animation:fantaGlow 1.0s infinite alternate}
-  @keyframes fantaGlow{from{box-shadow:0 4px 14px rgba(239,68,68,.35)}to{box-shadow:0 4px 26px rgba(239,68,68,.85)}}
-  .f-title{font-size:12.5px;font-weight:800;color:#fecaca;letter-spacing:.4px;text-shadow:0 1px 4px #000;margin-bottom:4px}
-  .f-bar{height:6px;width:150px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;border:1px solid rgba(239,68,68,.4)}
-  #fantaBarFill{height:100%;width:100%;background:linear-gradient(90deg,#ef4444,#f97316);border-radius:4px;transition:width .08s linear}
-  .k-bar{height:7px;width:150px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;border:1px solid rgba(255,210,58,.3)}
-  #krahangBarFill{height:100%;width:100%;background:linear-gradient(90deg,#ffd23a,#ff7a18);border-radius:4px;transition:width .08s linear}
+  /* ---------- Dedicated Compact Power-up Tray (Right Side under PiP) ---------- */
+  #powerupTray{
+    position:fixed;right:14px;top:154px;display:flex;flex-direction:column;
+    align-items:flex-end;gap:5px;pointer-events:none;z-index:6;
+  }
+  .power-pill{
+    display:none;flex-direction:column;background:rgba(12,16,28,.88);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    border-radius:10px;padding:4px 9px;min-width:130px;width:fit-content;
+    box-shadow:0 3px 12px rgba(0,0,0,.6);border:1.5px solid rgba(255,255,255,.2);
+    transition:opacity .2s,transform .2s,border-color .2s;
+  }
+  .pill-head{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+  .pill-icon{font-size:12px;line-height:1}
+  .pill-icon-img{height:14px;width:auto;object-fit:contain}
+  .pill-name{font-size:11.5px;font-weight:800;letter-spacing:.3px;white-space:nowrap}
+  .pill-time{font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;margin-left:auto;padding-left:4px}
+  .pill-bar{height:4px;width:100%;background:rgba(255,255,255,.14);border-radius:3px;overflow:hidden}
+  .power-pill.warning{animation:pillWarning .45s infinite alternate}
+  @keyframes pillWarning{from{opacity:1}to{opacity:.35}}
+
+  .saisin-pill{border-color:rgba(103,232,249,.75);box-shadow:0 3px 14px rgba(103,232,249,.25)}
+  .saisin-pill .pill-name{color:#cffafe;text-shadow:0 1px 4px #000}
+  .saisin-pill .pill-time{color:#67e8f9;text-shadow:0 1px 4px #000}
+  #saiSinBarFill{height:100%;width:100%;background:linear-gradient(90deg,#67e8f9,#38bdf8);border-radius:3px;transition:width .08s linear}
+
+  .fanta-pill{border-color:rgba(239,68,68,.75);box-shadow:0 3px 14px rgba(239,68,68,.3)}
+  .fanta-pill .pill-name{color:#fecaca;text-shadow:0 1px 4px #000}
+  .fanta-pill .pill-time{color:#f87171;text-shadow:0 1px 4px #000}
+  #fantaBarFill{height:100%;width:100%;background:linear-gradient(90deg,#ef4444,#f97316);border-radius:3px;transition:width .08s linear}
+
+  .krahang-pill{border-color:rgba(255,210,58,.75);box-shadow:0 3px 14px rgba(255,210,58,.25)}
+  .krahang-pill .pill-name{color:#fef08a;text-shadow:0 1px 4px #000}
+  .krahang-pill .pill-time{color:#fde047;text-shadow:0 1px 4px #000}
+  #krahangBarFill{height:100%;width:100%;background:linear-gradient(90deg,#ffd23a,#ff7a18);border-radius:3px;transition:width .08s linear}
   #pauseOverlay{display:none;z-index:10;background:radial-gradient(ellipse at center,rgba(10,12,28,.8),rgba(0,0,0,.92))}
   .pause-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:18px}
   .pause-btns button{margin-top:0}
@@ -234,17 +248,32 @@
       <div class="bar"><div id="barfill"></div></div>
     </div>
     <button id="pauseBtn" type="button">⏸ พักเกม</button>
-    <div id="krahangBadge">
-      <div class="k-title">🪽 กระด้งผีกระหังลอยฟ้า!</div>
-      <div class="k-bar"><div id="krahangBarFill"></div></div>
+  </div>
+
+  <div id="powerupTray">
+    <div id="saiSinBadge" class="power-pill saisin-pill">
+      <div class="pill-head">
+        <span class="pill-icon">🧵</span>
+        <span class="pill-name">สายสิญจน์</span>
+        <span class="pill-time" id="saiSinTimerText">20s</span>
+      </div>
+      <div class="pill-bar"><div id="saiSinBarFill"></div></div>
     </div>
-    <div id="saiSinBadge">
-      <div class="s-title">🧵 สายสิญจน์มงคล (<span id="saiSinTimerText">20</span>s)</div>
-      <div class="s-bar"><div id="saiSinBarFill"></div></div>
+    <div id="fantaBadge" class="power-pill fanta-pill">
+      <div class="pill-head">
+        <img id="fantaHudIcon" src="Image/fanta.png" alt="แฟนต้า" class="pill-icon-img">
+        <span class="pill-name">แฟนต้าสปีด</span>
+        <span class="pill-time" id="fantaTimerText">7s</span>
+      </div>
+      <div class="pill-bar"><div id="fantaBarFill"></div></div>
     </div>
-    <div id="fantaBadge">
-      <div class="f-title"><img id="fantaHudIcon" src="Image/fanta.png" alt="แฟนต้า" style="height:18px;vertical-align:middle;margin-right:5px">น้ำแดงแฟนต้าติดสปีด (<span id="fantaTimerText">7</span>s)</div>
-      <div class="f-bar"><div id="fantaBarFill"></div></div>
+    <div id="krahangBadge" class="power-pill krahang-pill">
+      <div class="pill-head">
+        <span class="pill-icon">🪽</span>
+        <span class="pill-name">กระด้งบิน</span>
+        <span class="pill-time" id="krahangTimerText">8s</span>
+      </div>
+      <div class="pill-bar"><div id="krahangBarFill"></div></div>
     </div>
   </div>
 </div>

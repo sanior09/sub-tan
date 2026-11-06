@@ -716,7 +716,8 @@ const ui = {
   hud: $('hud'), score: $('score'), hudBest: $('hudBest'), offerN: $('offerN'), bar: $('barfill'), hint: $('hint'),
   pip: $('pip'), vig: $('vig'), flash: $('flash'), menu: $('menu'), over: $('over'),
   pauseOverlay: $('pauseOverlay'), pauseBtn: $('pauseBtn'),
-  krahangBadge: $('krahangBadge'), krahangBarFill: $('krahangBarFill'),
+  powerupTray: $('powerupTray'),
+  krahangBadge: $('krahangBadge'), krahangBarFill: $('krahangBarFill'), krahangTimerText: $('krahangTimerText'),
   saiSinBadge: $('saiSinBadge'), saiSinBarFill: $('saiSinBarFill'), saiSinTimerText: $('saiSinTimerText'),
   fantaBadge: $('fantaBadge'), fantaBarFill: $('fantaBarFill'), fantaTimerText: $('fantaTimerText'),
   fScore: $('fScore'), fOffer: $('fOffer'), fBest: $('fBest'),
@@ -895,9 +896,10 @@ function activateFantaBoost() {
   sinceFanta = 0;
   sfx.fantaPickup();
   if (ui.fantaBadge) {
-    ui.fantaBadge.style.display = 'block';
+    ui.fantaBadge.style.display = 'flex';
     if (ui.fantaBarFill) ui.fantaBarFill.style.width = '100%';
     if (ui.fantaTimerText) ui.fantaTimerText.textContent = `${Math.ceil(MAX_FANTA_T)}s`;
+    ui.fantaBadge.classList.remove('warning');
   }
   // Intense fiery red screen flash
   ui.flash.style.transition = 'none';
@@ -914,7 +916,7 @@ function expireFantaBoost() {
   hasFanta = false;
   fantaT = 0;
   fantaAuraGroup.visible = false;
-  if (ui.fantaBadge) ui.fantaBadge.style.display = 'none';
+  if (ui.fantaBadge) { ui.fantaBadge.style.display = 'none'; ui.fantaBadge.classList.remove('warning'); }
   sfx.fantaExpire();
 }
 
@@ -942,9 +944,10 @@ function activateSaiSinShield() {
   sfx.saiSinPickup();
   saiSinT = MAX_SAISIN_T;
   if (ui.saiSinBadge) {
-    ui.saiSinBadge.style.display = 'block';
+    ui.saiSinBadge.style.display = 'flex';
     if (ui.saiSinBarFill) ui.saiSinBarFill.style.width = '100%';
     if (ui.saiSinTimerText) ui.saiSinTimerText.textContent = `${Math.ceil(MAX_SAISIN_T)}s`;
+    ui.saiSinBadge.classList.remove('warning');
   }
   ui.flash.style.transition = 'none';
   ui.flash.style.backgroundColor = 'rgba(103, 232, 249, 0.38)';
@@ -960,7 +963,7 @@ function expireSaiSinShield() {
   hasSaiSin = false;
   saiSinT = 0;
   saiSinShieldGroup.visible = false;
-  if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'none';
+  if (ui.saiSinBadge) { ui.saiSinBadge.style.display = 'none'; ui.saiSinBadge.classList.remove('warning'); }
   sfx.saiSinExpire();
 }
 
@@ -968,7 +971,7 @@ function consumeSaiSinShield(o) {
   saiSinT = 0;
   hasSaiSin = false;
   saiSinShieldGroup.visible = false;
-  if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'none';
+  if (ui.saiSinBadge) { ui.saiSinBadge.style.display = 'none'; ui.saiSinBadge.classList.remove('warning'); }
   sfx.saiSinBreak();
   invuln = 1.8;
   o.hit = true;
@@ -1031,8 +1034,10 @@ function activateKrahangFlight() {
   sfx.krahangPickup();
   if (player.setKrahangVisible) player.setKrahangVisible(true);
   if (ui.krahangBadge) {
-    ui.krahangBadge.style.display = 'block';
+    ui.krahangBadge.style.display = 'flex';
     if (ui.krahangBarFill) ui.krahangBarFill.style.width = '100%';
+    if (ui.krahangTimerText) ui.krahangTimerText.textContent = `${Math.ceil(MAX_FLY_T)}s`;
+    ui.krahangBadge.classList.remove('warning');
   }
   // Clear any existing sky offerings
   for (let i = offerings.length - 1; i >= 0; i--) {
@@ -1079,7 +1084,9 @@ function reset() {
   lane = 1; px = 0; py = 0; vy = 0; slideT = 0; invuln = 0; stumble = 0; shake = 0; landingGrace = 0;
   flyT = 0; isGlidingDown = false; sinceKrahang = 0; nextKrahangDist = 180 + Math.random() * 80; hasSaiSin = false; saiSinT = 0; sinceSaiSin = 0; nextSaiSinDist = 95 + Math.random() * 45; if (saiSinShieldGroup) saiSinShieldGroup.visible = false; if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'none'; hasFanta = false; fantaT = 0; sinceFanta = 0; nextFantaDist = 110 + Math.random() * 60; if (fantaAuraGroup) fantaAuraGroup.visible = false; if (ui.fantaBadge) ui.fantaBadge.style.display = 'none';
   if (player && player.setKrahangVisible) player.setKrahangVisible(false);
-  if (ui.krahangBadge) ui.krahangBadge.style.display = 'none';
+  if (ui.krahangBadge) { ui.krahangBadge.style.display = 'none'; ui.krahangBadge.classList.remove('warning'); }
+  if (ui.saiSinBadge) { ui.saiSinBadge.style.display = 'none'; ui.saiSinBadge.classList.remove('warning'); }
+  if (ui.fantaBadge) { ui.fantaBadge.style.display = 'none'; ui.fantaBadge.classList.remove('warning'); }
   sinceRow = 0; rowSpacing = 26; sinceDecor = 0; sinceGhost = 0; nextGhostDist = 45 + Math.random() * 30; hbTimer = 0; deadT = 0;
   playerRoot.rotation.set(0, 0, 0); playerRoot.visible = true;
   shrineGroup.position.set(-1.50, 0, -0.55);
@@ -1188,6 +1195,8 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'enter' && state !== 'play' && (state === 'menu' || (ui.over.style.display === 'flex' && ui.over.classList.contains('ready')))) start();
 });
 window.activateKrahangFlight = activateKrahangFlight;
+window.activateSaiSinShield = activateSaiSinShield;
+window.activateFantaBoost = activateFantaBoost;
 let touch = null;
 function swipeStart(x, y) { touch = { x, y, done: false }; }
 function swipeMove(x, y) {
@@ -1321,6 +1330,12 @@ function update(dt) {
         const pct = Math.max(0, Math.min(100, (flyT / MAX_FLY_T) * 100));
         ui.krahangBarFill.style.width = pct + '%';
       }
+      if (ui.krahangTimerText) {
+        ui.krahangTimerText.textContent = `${Math.ceil(flyT)}s`;
+      }
+      if (ui.krahangBadge) {
+        ui.krahangBadge.classList.toggle('warning', flyT < 2.5);
+      }
       skyOfferTimer -= dt;
       if (skyOfferTimer <= 0) {
         skyOfferTimer = 0.12;
@@ -1331,7 +1346,7 @@ function update(dt) {
       if (flyT <= 0) {
         flyT = 0;
         isGlidingDown = true;
-        if (ui.krahangBadge) ui.krahangBadge.style.display = 'none';
+        if (ui.krahangBadge) { ui.krahangBadge.style.display = 'none'; ui.krahangBadge.classList.remove('warning'); }
       }
     } else if (isGlidingDown) {
       py += (0 - py) * Math.min(1, dt * 3.4);
@@ -1385,6 +1400,9 @@ function update(dt) {
         if (ui.fantaTimerText) {
           ui.fantaTimerText.textContent = `${Math.ceil(fantaT)}s`;
         }
+        if (ui.fantaBadge) {
+          ui.fantaBadge.classList.toggle('warning', fantaT < 2.5);
+        }
         if (fantaT < 2.5) {
           fantaAuraGroup.visible = Math.floor(clock * 14) % 2 === 0;
         } else {
@@ -1405,6 +1423,9 @@ function update(dt) {
         }
         if (ui.saiSinTimerText) {
           ui.saiSinTimerText.textContent = `${Math.ceil(saiSinT)}s`;
+        }
+        if (ui.saiSinBadge) {
+          ui.saiSinBadge.classList.toggle('warning', saiSinT < 3.5);
         }
         // Warning blink during final 3.5 seconds before expiration
         if (saiSinT < 3.5) {
@@ -1690,6 +1711,10 @@ function resize() {
   const margin = 14;
   pipRect = { x: W - pw - margin, y: margin, w: pw, h: ph };   // y measured from top
   Object.assign(ui.pip.style, { left: pipRect.x + 'px', top: pipRect.y + 'px', width: pw + 'px', height: ph + 'px' });
+  if (ui.powerupTray) {
+    ui.powerupTray.style.top = (pipRect.y + pipRect.h + 8) + 'px';
+    ui.powerupTray.style.right = margin + 'px';
+  }
   pipCam.aspect = pw / ph; pipCam.updateProjectionMatrix();
 }
 window.addEventListener('resize', resize); resize();
