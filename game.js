@@ -762,44 +762,67 @@ saiSinShieldGroup.position.set(0, 0.95, 0);
 saiSinShieldGroup.visible = false;
 playerRoot.add(saiSinShieldGroup);
 
-// 🥤 Fanta Red Nitro Dash Aura Group attached to playerRoot
+// 🥤 Fanta Red Nitro Dash: Backward Blasting Light Streams (แสงไอพ่นพุ่งด้านหลัง!)
 const fantaAuraGroup = new THREE.Group();
-// 1. Sleek Ruby Nitro Barrier Dome (Smooth, no ugly wireframe!)
-const fantaDomeGeo = new THREE.SphereGeometry(1.08, 22, 16);
-const fantaDomeMat = new THREE.MeshBasicMaterial({
+
+const fantaFlameMat = new THREE.MeshBasicMaterial({
   color: 0xef4444,
   transparent: true,
-  opacity: 0.22,
+  opacity: 0.75,
   side: THREE.DoubleSide
 });
-const fantaDome = new THREE.Mesh(fantaDomeGeo, fantaDomeMat);
-fantaAuraGroup.add(fantaDome);
+const fantaCoreMat = new THREE.MeshBasicMaterial({
+  color: 0xffea00,
+  transparent: true,
+  opacity: 0.92,
+  side: THREE.DoubleSide
+});
 
-// 2. Dual Spinning Nitro Torus Rings (Ruby Red & Flame Orange)
-const fantaRingA = new THREE.Mesh(
-  new THREE.TorusGeometry(1.12, 0.038, 10, 32),
-  new THREE.MeshBasicMaterial({ color: 0xef4444 })
-);
-fantaRingA.rotation.x = Math.PI * 0.30;
-fantaAuraGroup.add(fantaRingA);
+// Left & Right Outer Nitro Flame Beams (shooting backwards towards +Z)
+const fantaFlameL = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.16, 1.8, 10, 1, true), fantaFlameMat);
+fantaFlameL.rotation.x = -Math.PI * 0.5;
+fantaFlameL.position.set(-0.16, 0.88, 1.05);
+fantaAuraGroup.add(fantaFlameL);
 
-const fantaRingB = new THREE.Mesh(
-  new THREE.TorusGeometry(1.12, 0.038, 10, 32),
-  new THREE.MeshBasicMaterial({ color: 0xf97316 })
-);
-fantaRingB.rotation.y = Math.PI * 0.35;
-fantaAuraGroup.add(fantaRingB);
+const fantaFlameR = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.16, 1.8, 10, 1, true), fantaFlameMat);
+fantaFlameR.rotation.x = -Math.PI * 0.5;
+fantaFlameR.position.set(0.16, 0.88, 1.05);
+fantaAuraGroup.add(fantaFlameR);
 
-// 3. Ground Nitro Flame Disc at the runner's feet
-const fantaGroundRing = new THREE.Mesh(
-  new THREE.RingGeometry(0.50, 0.78, 24),
-  new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide, transparent: true, opacity: 0.70 })
-);
-fantaGroundRing.rotation.x = -Math.PI / 2;
-fantaGroundRing.position.y = -0.92;
-fantaAuraGroup.add(fantaGroundRing);
+// Left & Right Intense Core Jets (Yellow hot core)
+const fantaCoreL = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.08, 1.3, 8, 1, true), fantaCoreMat);
+fantaCoreL.rotation.x = -Math.PI * 0.5;
+fantaCoreL.position.set(-0.16, 0.88, 0.80);
+fantaAuraGroup.add(fantaCoreL);
 
-fantaAuraGroup.position.set(0, 0.95, 0);
+const fantaCoreR = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.08, 1.3, 8, 1, true), fantaCoreMat);
+fantaCoreR.rotation.x = -Math.PI * 0.5;
+fantaCoreR.position.set(0.16, 0.88, 0.80);
+fantaAuraGroup.add(fantaCoreR);
+
+// High-speed nitro light streaks shooting backward
+const fantaStreakMat = new THREE.MeshBasicMaterial({
+  color: 0xf97316,
+  transparent: true,
+  opacity: 0.65,
+  side: THREE.DoubleSide
+});
+const fantaStreakL = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 2.4), fantaStreakMat);
+fantaStreakL.rotation.x = -Math.PI * 0.5;
+fantaStreakL.position.set(-0.35, 0.92, 1.35);
+fantaAuraGroup.add(fantaStreakL);
+
+const fantaStreakR = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 2.4), fantaStreakMat);
+fantaStreakR.rotation.x = -Math.PI * 0.5;
+fantaStreakR.position.set(0.35, 0.92, 1.35);
+fantaAuraGroup.add(fantaStreakR);
+
+const fantaStreakMid = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 2.0), fantaFlameMat);
+fantaStreakMid.rotation.x = -Math.PI * 0.5;
+fantaStreakMid.position.set(0, 0.45, 1.25);
+fantaAuraGroup.add(fantaStreakMid);
+
+fantaAuraGroup.position.set(0, 0, 0);
 fantaAuraGroup.visible = false;
 playerRoot.add(fantaAuraGroup);
 
@@ -1571,12 +1594,15 @@ function update(dt) {
     shieldDome.scale.setScalar(1.0 + Math.sin(clock * 5.0) * 0.04);
   }
   if (hasFanta) {
-    fantaRingA.rotation.z += dt * 4.2;
-    fantaRingA.rotation.x += dt * 2.5;
-    fantaRingB.rotation.z -= dt * 3.8;
-    fantaRingB.rotation.y += dt * 2.8;
-    fantaDome.scale.setScalar(1.0 + Math.sin(clock * 6.5) * 0.05);
-    fantaGroundRing.rotation.z += dt * 5.0;
+    const roarL = 1.0 + Math.sin(clock * 38) * 0.35 + Math.sin(clock * 50) * 0.15;
+    const roarR = 1.0 + Math.cos(clock * 42) * 0.35 + Math.cos(clock * 54) * 0.15;
+    fantaFlameL.scale.set(1.0 + Math.sin(clock * 25) * 0.2, 1.0 + Math.cos(clock * 30) * 0.2, Math.max(0.4, roarL));
+    fantaFlameR.scale.set(1.0 + Math.cos(clock * 27) * 0.2, 1.0 + Math.sin(clock * 32) * 0.2, Math.max(0.4, roarR));
+    fantaCoreL.scale.set(1, 1, Math.max(0.3, roarL * 0.9));
+    fantaCoreR.scale.set(1, 1, Math.max(0.3, roarR * 0.9));
+    fantaStreakL.position.z = 1.35 + Math.sin(clock * 20) * 0.25;
+    fantaStreakR.position.z = 1.35 + Math.cos(clock * 22) * 0.25;
+    fantaStreakMid.position.z = 1.25 + Math.sin(clock * 26) * 0.20;
   }
   if (state === 'play') {
     const blink = invuln > 0 && flyT <= 0 && !isGlidingDown && Math.floor(clock * 20) % 2 === 0;
