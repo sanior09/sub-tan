@@ -524,16 +524,16 @@ let sinceRow = 0, rowSpacing = 20;
 let sinceGhost = 0, nextGhostDist = 45 + Math.random() * 30;
 
 function spawnRow() {
-  if (flyT > 0) {
-    // While soaring through the sky, do not spawn ground obstacles under the player!
-    rowSpacing = speed * 1.2;
+  if (flyT > 0 || isGlidingDown) {
+    // While soaring through the sky or descending, do not spawn ground obstacles under the player!
+    rowSpacing = speed * 1.5;
     return;
   }
   const z = SPAWN_Z;
-  const isKrahangRow = sinceKrahang >= nextKrahangDist && dist > 35 && flyT <= 0;
+  const isKrahangRow = sinceKrahang >= nextKrahangDist && dist > 55 && flyT <= 0 && !isGlidingDown;
   if (isKrahangRow) {
     sinceKrahang = 0;
-    nextKrahangDist = 100 + Math.random() * 60; // 100m - 160m spacing between flight power-ups
+    nextKrahangDist = 220 + Math.random() * 120; // 220m - 340m spacing between flight power-ups
     const kLane = Math.floor(Math.random() * 3);
     spawnKrahangItem(kLane, z);
     for (let l = 0; l < 3; l++) {
@@ -692,8 +692,10 @@ function spawnKrahangItem(lane, z) {
 function activateKrahangFlight() {
   flyT = MAX_FLY_T;
   isGlidingDown = false;
-  invuln = MAX_FLY_T + 2.0;
-  gap = Math.min(GHOST_MAX_GAP, gap + 4.0);
+  invuln = MAX_FLY_T + 4.0;
+  gap = GHOST_MAX_GAP;
+  gz = GHOST_MAX_GAP;
+  sinceKrahang = 0;
   sfx.krahangPickup();
   if (player.setKrahangVisible) player.setKrahangVisible(true);
   if (ui.krahangBadge) {
@@ -743,7 +745,7 @@ function reset() {
   speed = 16; speedMul = 1; dist = 0; offerCount = 0; tPlay = 0;
   gap = gz = GHOST_START_GAP; gx = 0;
   lane = 1; px = 0; py = 0; vy = 0; slideT = 0; invuln = 0; stumble = 0; shake = 0;
-  flyT = 0; isGlidingDown = false; sinceKrahang = 0; nextKrahangDist = 75 + Math.random() * 45;
+  flyT = 0; isGlidingDown = false; sinceKrahang = 0; nextKrahangDist = 180 + Math.random() * 80;
   if (player && player.setKrahangVisible) player.setKrahangVisible(false);
   if (ui.krahangBadge) ui.krahangBadge.style.display = 'none';
   sinceRow = 0; rowSpacing = 26; sinceDecor = 0; sinceGhost = 0; nextGhostDist = 45 + Math.random() * 30; hbTimer = 0; deadT = 0;
@@ -973,13 +975,26 @@ function update(dt) {
     } else if (isGlidingDown) {
       py += (0 - py) * Math.min(1, dt * 3.4);
       vy = 0;
+      gap = GHOST_MAX_GAP; // Ghost Tan remains safely far behind during descent!
+      gz = Math.max(gz, GHOST_MAX_GAP);
       if (py < 0.15) {
         py = 0;
         isGlidingDown = false;
         if (player.setKrahangVisible) player.setKrahangVisible(false);
         sfx.land();
-        invuln = Math.max(invuln, 1.4);
-        sinceRow = 0; rowSpacing = speed * 2.2; // clear runway upon touchdown!
+        invuln = Math.max(invuln, 2.5); // 2.5s landing grace immunity!
+        gap = GHOST_MAX_GAP;            // Ghost Tan stays at safe max distance
+        gz = GHOST_MAX_GAP;
+        sinceKrahang = 0;               // Reset ground travel distance upon touchdown
+        nextKrahangDist = 220 + Math.random() * 120;
+        sinceRow = 0; rowSpacing = speed * 2.5; // Clear runway upon touchdown!
+        // Clear any ground obstacles in the immediate touchdown area (within 28m ahead)
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          if (obstacles[i].mesh.position.z > -28) {
+            scene.remove(obstacles[i].mesh);
+            obstacles.splice(i, 1);
+          }
+        }
       }
     } else {
       if (py > 0 || vy > 0) {
@@ -991,9 +1006,15 @@ function update(dt) {
     if (invuln > 0) invuln -= dt;
     if (stumble > 0) stumble -= dt;
 
-    // ghost gap: constantly closing in fast
-    gap -= (0.85 + tPlay * 0.018) * dt;
-    gap = Math.min(gap, GHOST_MAX_GAP);
+    // ghost gap: constantly closing in fast ONLY when running on the ground!
+    if (flyT <= 0 && !isGlidingDown) {
+      const drain = Math.min(1.85, 0.70 + tPlay * 0.008);
+      gap -= drain * dt;
+      gap = Math.min(gap, GHOST_MAX_GAP);
+    } else {
+      gap = GHOST_MAX_GAP;
+      gz = Math.max(gz, GHOST_MAX_GAP - 0.5);
+    }
 
     // world scroll
     groundTex.offset.y += dz / CELL;
@@ -1003,7 +1024,9 @@ function update(dt) {
     }
     sinceDecor += dz; if (sinceDecor > 9) { sinceDecor = 0; spawnDecor(SPAWN_Z); }
     sinceGhost += dz;
-    sinceKrahang += dz;
+    if (flyT <= 0 && !isGlidingDown) {
+      sinceKrahang += dz;
+    }
     sinceRow += dz; if (sinceRow >= rowSpacing) { sinceRow = 0; spawnRow(); }
 
     // collectibles (🪽 กระด้งผีกระหัง)
@@ -1081,7 +1104,7 @@ function update(dt) {
     hbTimer -= dt;
     if (hbTimer <= 0) { sfx.beat(); hbTimer = 0.35 + Math.min(1, Math.max(0, (gap - 2) / 14)) * 0.8; }
 
-    if (gap <= CATCH_GAP) die();
+    if (gap <= CATCH_GAP && flyT <= 0 && !isGlidingDown) die();
   } else if (state === 'dead') {
     deadT += dt;
     const k = Math.min(1, deadT / 0.5);
