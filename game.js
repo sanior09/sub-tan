@@ -394,13 +394,79 @@ function spawnDecor(z) {
     }
     m.position.set(side * off, 0, z + (Math.random() - 0.5) * 3.5);
     scene.add(m); decor.push(m);
+
+    // Occasional spooky roadside spirit watcher standing beside the shrine or tree
+    if ((step === 1 || step === 3) && Math.random() < 0.24) {
+      const watcher = makeStandingGhost(true);
+      watcher.group.position.set(side * (off + 1.05), 0, z + (Math.random() - 0.5) * 1.6);
+      watcher.group.rotation.y = side > 0 ? -Math.PI / 2 - 0.25 : Math.PI / 2 + 0.25;
+      scene.add(watcher.group);
+      decor.push(watcher.group);
+    }
   });
 }
 
 // ============================================================ obstacles & offerings
 const obstacles = [];
 const offerings = [];
-const OB_DEPTH = { low: 0.6, high: 0.7, block: 2.7 };
+const OB_DEPTH = { low: 0.6, high: 0.7, block: 2.7, ghost: 1.2 };
+
+function makeStandingGhost(isRoadside) {
+  const g = new THREE.Group();
+  const human = C.makeHuman(true);
+  human.group.scale.setScalar(isRoadside ? 0.72 : 0.82);
+  human.group.rotation.y = 0; // faces +Z toward oncoming runner
+  human.group.position.y = 0.12;
+  g.add(human.group);
+
+  // Piercing glowing red ghostly eyes
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0024, fog: false });
+  const eyeL = new THREE.Mesh(GEO.sph, eyeMat);
+  eyeL.scale.set(0.048, 0.048, 0.048);
+  eyeL.position.set(-0.11, 0.045, 0.30);
+  human.head.add(eyeL);
+
+  const eyeR = new THREE.Mesh(GEO.sph, eyeMat);
+  eyeR.scale.set(0.048, 0.048, 0.048);
+  eyeR.position.set(0.10, 0.035, 0.30);
+  human.head.add(eyeR);
+
+  // Eerie blood-red ground spectral aura ring
+  const ringGeo = new THREE.RingGeometry(0.25, 1.15, 24);
+  const ringMat = new THREE.MeshBasicMaterial({
+    color: 0xff1226,
+    transparent: true,
+    opacity: isRoadside ? 0.36 : 0.62,
+    side: THREE.DoubleSide,
+    fog: false
+  });
+  const mistRing = new THREE.Mesh(ringGeo, ringMat);
+  mistRing.rotation.x = Math.PI / 2;
+  mistRing.position.y = 0.03;
+  g.add(mistRing);
+
+  // Floating red spirit light for in-lane ghosts
+  let wisp = null;
+  if (!isRoadside) {
+    wisp = new THREE.PointLight(0xff2244, 1.4, 8.0);
+    wisp.position.set(0, 1.35, 0.25);
+    g.add(wisp);
+  }
+
+  const phase = Math.random() * Math.PI * 2;
+  const update = (dt, t) => {
+    // Eerie floating bob
+    human.group.position.y = 0.12 + Math.sin(t * 3.6 + phase) * 0.10;
+    // Grasping outstretched arms & swaying head
+    C.poseGhost(human, t + phase);
+    // Pulsing spectral ground mist
+    mistRing.scale.setScalar(1 + Math.sin(t * 4.2 + phase) * 0.16);
+    if (wisp) wisp.intensity = 0.75 + Math.sin(t * 7 + phase) * 0.25;
+  };
+
+  g.userData = { update };
+  return { group: g, human, mistRing, wisp, phase, update };
+}
 
 function makeObstacle(type) {
   const g = new THREE.Group();
@@ -422,10 +488,26 @@ function makeObstacle(type) {
   return g;
 }
 function spawnObstacle(lane, type, z) {
-  const m = makeObstacle(type);
+  let m, ghostObj = null, update = null;
+  if (type === 'ghost') {
+    ghostObj = makeStandingGhost(false);
+    m = ghostObj.group;
+    update = ghostObj.update;
+  } else {
+    m = makeObstacle(type);
+  }
   m.position.set((lane - 1) * LANE_W, 0, z);
   scene.add(m);
-  obstacles.push({ mesh: m, lane, type, depth: OB_DEPTH[type], hit: false });
+  obstacles.push({
+    mesh: m,
+    lane,
+    type,
+    depth: OB_DEPTH[type],
+    hit: false,
+    ghostObj,
+    update,
+    passed: false
+  });
 }
 function spawnOffering(lane, z, y) {
   const m = new THREE.Group();
@@ -439,8 +521,38 @@ function spawnOffering(lane, z, y) {
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const TYPES = ['low', 'high', 'block'];
 let sinceRow = 0, rowSpacing = 20;
+let sinceGhost = 0, nextGhostDist = 45 + Math.random() * 30;
+
 function spawnRow() {
   const z = SPAWN_Z;
+  const isGhostRow = sinceGhost >= nextGhostDist && dist > 30;
+
+  if (isGhostRow) {
+    sinceGhost = 0;
+    nextGhostDist = 55 + Math.random() * 45; // 55m to 100m spacing so player has plenty of reaction time!
+
+    // 1. Pick lane for the standing ghost
+    const gLane = Math.floor(Math.random() * 3);
+    spawnObstacle(gLane, 'ghost', z);
+
+    // 2. Guarantee a 100% CLEAR escape lane
+    const freeLane = (gLane + 1 + Math.floor(Math.random() * 2)) % 3;
+    const otherLane = 3 - gLane - freeLane;
+
+    // 3. 35% chance otherLane has low jumpable hurdle, otherwise completely clear!
+    if (Math.random() < 0.35) {
+      spawnObstacle(otherLane, 'low', z);
+    }
+
+    // 4. Reward garlands in the freeLane halfway to next row
+    const zc = z + rowSpacing * 0.5;
+    for (let i = -2; i <= 2; i++) spawnOffering(freeLane, zc + i * 1.8, 1.0);
+
+    // 5. Generous breathing room after dodging the ghost
+    rowSpacing = Math.max(rowSpacing, speed * 1.25);
+    return;
+  }
+
   const r = Math.random();
   let freeLane = Math.floor(Math.random() * 3);
   if (r < 0.28) {
@@ -494,6 +606,8 @@ const sfx = {
   hit: () => { noise(0.3, 0.5, 700); tone(110, 0.3, 'sawtooth', 0.2, -70); },
   beat: () => { tone(60, 0.16, 'sine', 0.5, -20); setTimeout(() => tone(52, 0.18, 'sine', 0.4, -15), 150); },
   scream: () => { noise(1.3, 0.6, 3000); tone(1000, 1.1, 'sawtooth', 0.22, -650); tone(1500, 0.9, 'square', 0.1, -1000); },
+  ghostScare: () => { noise(0.65, 0.65, 2400); tone(850, 0.7, 'sawtooth', 0.28, -550); tone(140, 0.5, 'square', 0.22, -60); },
+  ghostPass: () => { noise(0.4, 0.22, 600); tone(220, 0.35, 'sine', 0.14, -50); },
 };
 
 // ============================================================ game state
@@ -521,7 +635,7 @@ function reset() {
   speed = 16; speedMul = 1; dist = 0; offerCount = 0; tPlay = 0;
   gap = gz = GHOST_START_GAP; gx = 0;
   lane = 1; px = 0; py = 0; vy = 0; slideT = 0; invuln = 0; stumble = 0; shake = 0;
-  sinceRow = 0; rowSpacing = 26; sinceDecor = 0; hbTimer = 0; deadT = 0;
+  sinceRow = 0; rowSpacing = 26; sinceDecor = 0; sinceGhost = 0; nextGhostDist = 45 + Math.random() * 30; hbTimer = 0; deadT = 0;
   playerRoot.rotation.set(0, 0, 0); playerRoot.visible = true;
   shrineGroup.position.set(-1.50, 0, -0.55);
   shrineGroup.rotation.y = 0.82;
@@ -566,6 +680,7 @@ function goToMenu() {
 }
 window.triggerStart = start;
 window.triggerDie = die;
+window.triggerSpawnGhost = (l, z) => spawnObstacle(l, 'ghost', z);
 function die() {
   paused = false;
   ui.pauseOverlay.style.display = 'none';
@@ -724,23 +839,43 @@ function update(dt) {
       if (shrineGroup.position.z > 14) shrineGroup.visible = false;
     }
     sinceDecor += dz; if (sinceDecor > 9) { sinceDecor = 0; spawnDecor(SPAWN_Z); }
+    sinceGhost += dz;
     sinceRow += dz; if (sinceRow >= rowSpacing) { sinceRow = 0; spawnRow(); }
 
     // obstacles
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const o = obstacles[i]; o.mesh.position.z += dz;
+      if (o.update) o.update(dt, clock);
       const oz = o.mesh.position.z;
       if (oz > 12) { scene.remove(o.mesh); obstacles.splice(i, 1); continue; }
       if (!o.hit && o.lane === lane && Math.abs(oz) < o.depth / 2 + 0.35 && invuln <= 0) {
         let hit = false;
         if (o.type === 'low') hit = py < 0.85;
         else if (o.type === 'high') hit = slideT <= 0;
+        else if (o.type === 'ghost') hit = py < 2.3;
         else hit = py < 2.3;
         if (hit) {
-          o.hit = true; invuln = 1.4; stumble = 0.9; shake = 0.7;
-          gap -= 2.4; sfx.hit();
-          ui.flash.style.transition = 'none'; ui.flash.style.opacity = 0.35;
+          o.hit = true; invuln = 1.4; stumble = 0.95; shake = 0.85;
+          gap -= 2.8;
+          if (o.type === 'ghost') {
+            sfx.ghostScare();
+            ui.flash.style.transition = 'none'; ui.flash.style.opacity = 0.65;
+            if (o.ghostObj) {
+              o.ghostObj.human.group.position.z += 0.8;
+              o.ghostObj.human.group.scale.multiplyScalar(1.22);
+            }
+          } else {
+            sfx.hit();
+            ui.flash.style.transition = 'none'; ui.flash.style.opacity = 0.35;
+          }
           requestAnimationFrame(() => { ui.flash.style.transition = 'opacity .4s'; ui.flash.style.opacity = 0; });
+        }
+      }
+      if (o.type === 'ghost' && !o.hit && !o.passed && oz > 1.2) {
+        o.passed = true;
+        sfx.ghostPass();
+        if (o.ghostObj && o.ghostObj.human && o.ghostObj.human.head) {
+          o.ghostObj.human.head.rotation.y = (lane - o.lane) * 0.45;
         }
       }
     }
@@ -756,6 +891,7 @@ function update(dt) {
     }
     for (let i = decor.length - 1; i >= 0; i--) {
       decor[i].position.z += dz;
+      if (decor[i].userData && decor[i].userData.update) decor[i].userData.update(dt, clock);
       if (decor[i].position.z > 14) { scene.remove(decor[i]); decor.splice(i, 1); }
     }
 
