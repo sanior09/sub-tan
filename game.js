@@ -767,7 +767,7 @@ function start() {
   state = 'play';
   sfx.hit();
   shake = 0.45;
-  ui.menu.style.display = 'none'; ui.over.style.display = 'none'; ui.pauseOverlay.style.display = 'none';
+  if (deathTimer) { clearTimeout(deathTimer); deathTimer = null; } ui.menu.style.display = 'none'; ui.over.style.display = 'none'; ui.over.classList.remove('scaring', 'ready'); ui.pauseOverlay.style.display = 'none';
   ui.hud.style.display = 'block'; ui.pip.style.display = 'block'; ui.hint.style.display = 'block';
   setTimeout(() => (ui.hint.style.display = state === 'play' ? 'none' : ui.hint.style.display), 7000);
 }
@@ -784,7 +784,8 @@ function goToMenu() {
   touch = null;
   state = 'menu';
   ui.flash.style.opacity = 0;
-  ui.over.style.display = 'none';
+  if (deathTimer) { clearTimeout(deathTimer); deathTimer = null; } ui.over.style.display = 'none';
+  ui.over.classList.remove('scaring', 'ready');
   ui.pauseOverlay.style.display = 'none';
   ui.hud.style.display = 'none';
   ui.pip.style.display = 'none';
@@ -796,7 +797,14 @@ window.triggerDie = die;
 window.triggerSpawnGhost = (l, z) => spawnObstacle(l, 'ghost', z);
 window.triggerSpawnKrahang = (l, z) => spawnKrahangItem(l, z);
 window.triggerFly = () => activateKrahangFlight();
-window.getGameState = () => ({ flyT, py, offerCount, state, gap, dist });
+window.getGameState = () => ({ flyT, py, offerCount, state, gap, dist, deadT });
+let deathTimer = null;
+function showDeathButtons() {
+  if (!ui.over) return;
+  if (deathTimer) { clearTimeout(deathTimer); deathTimer = null; }
+  ui.over.classList.remove('scaring');
+  ui.over.classList.add('ready');
+}
 function die() {
   paused = false;
   ui.pauseOverlay.style.display = 'none';
@@ -807,6 +815,17 @@ function die() {
   if (m > best) { best = m; localStorage.setItem('tanGhostBest', best); }
   ui.fScore.textContent = m; ui.fOffer.textContent = offerCount; ui.fBest.textContent = best;
   ui.hint.style.display = 'none';
+  ui.pip.style.display = 'none';
+  ui.hud.style.display = 'none';
+  shake = 2.4;
+  // Show Tan's face full screen first!
+  ui.over.style.display = 'flex';
+  ui.over.classList.remove('ready');
+  ui.over.classList.add('scaring');
+  if (deathTimer) clearTimeout(deathTimer);
+  deathTimer = setTimeout(() => {
+    if (state === 'dead') showDeathButtons();
+  }, 1600);
 }
 
 // ============================================================ input
@@ -830,7 +849,7 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'arrowup' || k === 'w' || k === ' ') jump();
   else if (k === 'arrowdown' || k === 's') slide();
   else if (k === 'f') activateKrahangFlight();
-  else if (k === 'enter' && state !== 'play' && (state === 'menu' || ui.over.style.display === 'flex')) start();
+  else if (k === 'enter' && state !== 'play' && (state === 'menu' || (ui.over.style.display === 'flex' && ui.over.classList.contains('ready')))) start();
 });
 window.activateKrahangFlight = activateKrahangFlight;
 let touch = null;
@@ -876,6 +895,11 @@ canvas.addEventListener('mousedown', (e) => swipeStart(e.clientX, e.clientY));
 window.addEventListener('mouseup', (e) => swipeEnd(e.clientX, e.clientY));
 $('startBtn').addEventListener('click', (e) => { e.stopPropagation(); start(); });
 ui.menu.addEventListener('click', () => { if (state === 'menu') start(); });
+ui.over.addEventListener('click', (e) => {
+  if (ui.over.classList.contains('scaring') && deadT > 0.6) {
+    showDeathButtons();
+  }
+});
 $('retryBtn').addEventListener('click', (e) => { e.stopPropagation(); start(); });
 $('menuBtn').addEventListener('click', (e) => { e.stopPropagation(); goToMenu(); });
 ui.pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePause(); });
@@ -1109,8 +1133,11 @@ function update(dt) {
     deadT += dt;
     const k = Math.min(1, deadT / 0.5);
     gap = CATCH_GAP + (1 - k) * 0;           // ghost lunges to the camera
-    shake = 1.2;
-    if (deadT > 1.9 && ui.over.style.display !== 'flex') ui.over.style.display = 'flex';
+    if (deadT < 1.0) shake = Math.max(shake, 1.4);
+    // After 1.6s of fullscreen Tan face, transition to show retry & menu buttons!
+    if (deadT >= 1.6 && !ui.over.classList.contains('ready')) {
+      showDeathButtons();
+    }
     if (deadT > 0.05) ui.flash.style.opacity = Math.max(0, ui.flash.style.opacity - dt * 2);
   } else {
     // menu: Subway Surfers-style shrine prayer intro (world stands still until player taps Start)
