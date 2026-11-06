@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="https://sub-tan.onrender.com" target="_blank">
-  <img src="Image/og-banner.jpg?v=6" width="100%" alt="ผีตาลหลอน Beta - 3D Endless Runner Game" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
+  <img src="Image/og-banner.jpg?v=7" width="100%" alt="ผีตาลหลอน Beta - 3D Endless Runner Game" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
 </a>
 
 # 👻 ผีตาลหลอน Beta (Sub-Tan Beta)
