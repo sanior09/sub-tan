@@ -1,10 +1,10 @@
 <div align="center">
 
 <a href="https://sub-tan.onrender.com" target="_blank">
-  <img src="Image/og-banner.jpg?v=4" width="100%" alt="ผีตาลหลอน - 3D Endless Runner Game" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
+  <img src="Image/og-banner.jpg?v=6" width="100%" alt="ผีตาลหลอน Beta - 3D Endless Runner Game" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
 </a>
 
-# 👻 ผีตาลหลอน (Sub-Tan)
+# 👻 ผีตาลหลอน Beta (Sub-Tan Beta)
 ### *3D Endless Runner Web Game — "บนเเล้วต้องเเก้นะครับ...."* 🙏🌼🏃‍♂️💨
 
 <p align="center">
@@ -24,7 +24,7 @@
 <br />
 
 <p align="center" style="max-width: 720px; font-size: 16px; line-height: 1.6;">
-  <b>ผีตาลหลอน</b> คือเกมวิ่งหนีผี 3 มิติบนเว็บเบราว์เซอร์ สไตล์ <i>Subway Surfers</i><br>
+  <b>ผีตาลหลอน Beta</b> คือเกมวิ่งหนีผี 3 มิติบนเว็บเบราว์เซอร์ สไตล์ <i>Subway Surfers</i><br>
   ที่หยิบยกวัฒนธรรมความเชื่อพื้นบ้านไทยเรื่อง <b>"การบนบานศาลกล่าว"</b> มาสร้างเป็นเกมแอ็กชันสุดระทึกและฮาแบบจัดเต็ม!<br>
   เมื่อคุณไปก้มกราบขอพรหน้า <b>"ศาลเจ้าพ่อตาล"</b> จนสมหวังในสิ่งที่ขอ แต่ดันชิ่งหนีไม่ยอมเอาพวงมาลัยไปแก้บนตามสัญญา...<br>
   งานนี้ <b>เจ้าพ่อตาล</b> เลยต้องกระโดดออกจากศาล สับตีนแตกวิ่งไล่ทวงแก้บนด้วยตัวเองแบบหายใจรดต้นคอ!
