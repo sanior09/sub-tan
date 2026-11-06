@@ -40,6 +40,13 @@
   #pauseBtn{pointer-events:auto;margin-top:6px;padding:7px 16px;font:800 14px "Sarabun",Tahoma,sans-serif;
     width:fit-content;border-radius:20px;background:rgba(15,18,32,.82);border:1.5px solid rgba(255,255,255,.4);
     box-shadow:0 4px 12px rgba(0,0,0,.6);display:flex;align-items:center;gap:6px}
+  #krahangBadge{display:none;background:rgba(20,24,42,.92);border:2px solid #ffd23a;border-radius:14px;
+    padding:8px 14px;width:fit-content;box-shadow:0 4px 20px rgba(255,210,58,.45);pointer-events:none;
+    margin-top:4px;animation:krahangGlow 1.2s infinite alternate}
+  @keyframes krahangGlow{from{box-shadow:0 4px 14px rgba(255,210,58,.3)}to{box-shadow:0 4px 24px rgba(255,210,58,.75)}}
+  .k-title{font-size:13px;font-weight:800;color:#ffea75;letter-spacing:.5px;text-shadow:0 1px 4px #000;margin-bottom:4px}
+  .k-bar{height:7px;width:150px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;border:1px solid rgba(255,210,58,.3)}
+  #krahangBarFill{height:100%;width:100%;background:linear-gradient(90deg,#ffd23a,#ff7a18);border-radius:4px;transition:width .08s linear}
   #pauseOverlay{display:none;z-index:10;background:radial-gradient(ellipse at center,rgba(10,12,28,.8),rgba(0,0,0,.92))}
   .pause-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:18px}
   .pause-btns button{margin-top:0}
@@ -114,6 +121,10 @@
       <div class="bar"><div id="barfill"></div></div>
     </div>
     <button id="pauseBtn" type="button">⏸ พักเกม</button>
+    <div id="krahangBadge">
+      <div class="k-title">🪽 กระด้งผีกระหังลอยฟ้า!</div>
+      <div class="k-bar"><div id="krahangBarFill"></div></div>
+    </div>
   </div>
 </div>
 <div id="hint">← → เปลี่ยนเลน &nbsp;|&nbsp; ↑ / Space กระโดด &nbsp;|&nbsp; ↓ สไลด์ &nbsp;|&nbsp; P / Esc พักเกม</div>

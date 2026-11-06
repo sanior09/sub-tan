@@ -256,6 +256,55 @@ function decodeGLB(b64, ok, fail) {
   } catch (e) { fail(e); }
 }
 
+// ------------------------------------------------------------ 🪽 กระด้งผีกระหัง (Krahang Woven Bamboo Winnowing Trays)
+const bambooWeaveTex = (() => {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#caa15e'; ctx.fillRect(0, 0, 128, 128);
+  const s = 16;
+  for (let y = 0; y < 128; y += s) {
+    for (let x = 0; x < 128; x += s) {
+      const alt = ((x / s) + (y / s)) % 2 === 0;
+      ctx.fillStyle = alt ? '#ddb670' : '#b68846';
+      ctx.fillRect(x + 1, y + 1, s - 2, s - 2);
+      ctx.strokeStyle = '#855822'; ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(4, 4);
+  return t;
+})();
+const bambooMat = new THREE.MeshLambertMaterial({ map: bambooWeaveTex, color: 0xffffff });
+const bambooRimMat = new THREE.MeshLambertMaterial({ color: 0x5a3416, emissive: 0x1a0d06 });
+const bambooStrutMat = new THREE.MeshLambertMaterial({ color: 0x76461f });
+const charmMatShared = new THREE.MeshBasicMaterial({ color: 0xffd23a });
+
+function makeKrahangTray(radius) {
+  const rad = radius || 0.50;
+  const g = new THREE.Group();
+  // Woven bamboo circular tray
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, 0.022, 26), bambooMat);
+  disc.rotation.x = Math.PI / 2;
+  g.add(disc);
+  // Sturdy dark bamboo outer rim
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(rad, 0.034, 8, 26), bambooRimMat);
+  g.add(rim);
+  // Bamboo cross struts on back
+  const strutH = new THREE.Mesh(boxG, bambooStrutMat);
+  strutH.scale.set(rad * 1.95, 0.022, 0.022); strutH.position.z = -0.015;
+  g.add(strutH);
+  const strutV = new THREE.Mesh(boxG, bambooStrutMat);
+  strutV.scale.set(0.022, rad * 1.95, 0.022); strutV.position.z = -0.015;
+  g.add(strutV);
+  // Center golden woven button / charm
+  const charm = new THREE.Mesh(sphG, charmMatShared);
+  charm.scale.set(0.038, 0.038, 0.02); charm.position.z = 0.016;
+  g.add(charm);
+  return g;
+}
+
 function makeRunner() {
   const root = new THREE.Group();
   // Incense sticks + marigold garland held between palms while praying at ศาลเจ้าพ่อตาล
@@ -277,7 +326,17 @@ function makeRunner() {
   root.add(incense);
 
   const r = { group: root, mixer: null, actions: {}, current: null, fallback: null, incense, bones: {} };
-  const useFallback = () => { r.fallback = makeHuman(false, true); root.add(r.fallback.group); };
+  const useFallback = () => {
+    r.fallback = makeHuman(false, true);
+    root.add(r.fallback.group);
+    const wL = makeKrahangTray(0.50), wR = makeKrahangTray(0.50);
+    wL.position.set(-0.25, -0.15, 0); wL.rotation.z = 0.25;
+    wR.position.set(0.25, -0.15, 0); wR.rotation.z = -0.25;
+    r.fallback.armL.f.add(wL);
+    r.fallback.armR.f.add(wR);
+    wL.visible = false; wR.visible = false;
+    r.setKrahangVisible = (v) => { wL.visible = !!v; wR.visible = !!v; };
+  };
   r.play = (name, fade) => {
     const a = r.actions[name]; if (!a || r.current === name) return;
     const prev = r.actions[r.current];
@@ -299,6 +358,26 @@ function makeRunner() {
       b.rUL.rotation.x -= 0.25 * airBlend;
       b.lLL.rotation.x += 0.45 * airBlend;
       b.rLL.rotation.x += 0.35 * airBlend;
+    }
+  };
+  r.poseKrahang = (clock, isFlying, banking) => {
+    if (!isFlying) return;
+    const b = r.bones;
+    if (b && b.lA && b.rA && b.lF && b.rF) {
+      const flap = Math.sin(clock * 14) * 0.42;
+      b.lA.rotation.set(-0.25, -0.18, -1.35 + flap - (banking || 0) * 0.38);
+      b.rA.rotation.set(-0.25, 0.18, 1.35 - flap - (banking || 0) * 0.38);
+      b.lF.rotation.set(0, -0.35, 0.15);
+      b.rF.rotation.set(0, 0.35, -0.15);
+      if (b.lUL && b.rUL) {
+        b.lUL.rotation.set(0.28, 0, 0.12);
+        b.rUL.rotation.set(0.28, 0, -0.12);
+      }
+    } else if (r.fallback) {
+      const flap = Math.sin(clock * 14) * 0.42;
+      const f = r.fallback;
+      if (f.armL && f.armL.u) f.armL.u.rotation.set(-0.25, -0.18, -1.35 + flap - (banking || 0) * 0.38);
+      if (f.armR && f.armR.u) f.armR.u.rotation.set(-0.25, 0.18, 1.35 - flap - (banking || 0) * 0.38);
     }
   };
   r.posePray = (t) => {
@@ -602,6 +681,28 @@ function makeRunner() {
       headGroup.add(tuft);
       mHead.add(headGroup);
     }
+
+    // 5. 🪽 Mount Krahang Woven Bamboo Winnowing Trays to Forearms
+    const bLF = getBone('LeftForeArm'), bRF = getBone('RightForeArm');
+    const wingL = makeKrahangTray(0.58), wingR = makeKrahangTray(0.58);
+    if (bLF) {
+      const mLF = makeMount(bLF);
+      wingL.position.set(-0.38, -0.12, 0.04);
+      wingL.rotation.set(0.35, -0.65, 0.40);
+      mLF.add(wingL);
+    }
+    if (bRF) {
+      const mRF = makeMount(bRF);
+      wingR.position.set(0.38, -0.12, 0.04);
+      wingR.rotation.set(0.35, 0.65, -0.40);
+      mRF.add(wingR);
+    }
+    wingL.visible = false;
+    wingR.visible = false;
+    r.setKrahangVisible = (v) => {
+      wingL.visible = !!v;
+      wingR.visible = !!v;
+    };
 
     r.mixer = new THREE.AnimationMixer(model);
     const findClip = (n) => gltf.animations.find((c) => c.name === n) || gltf.animations[0];
@@ -916,5 +1017,5 @@ function poseGhost(h, t) {                     // floating lunge, arms grasping 
   h.head.rotation.z = Math.sin(t * 3.1) * 0.12; h.head.rotation.x = 0.1;
 }
 
-return { tex, makeHuman, makeRunner, makeGhost, poseRun, poseSlide, poseGhost };
+return { tex, makeHuman, makeRunner, makeGhost, poseRun, poseSlide, poseGhost, makeKrahangTray };
 })();
