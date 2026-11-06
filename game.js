@@ -545,6 +545,21 @@ function spawnRow() {
     return;
   }
 
+  const isSaiSinRow = sinceSaiSin >= nextSaiSinDist && dist > 35 && flyT <= 0 && !isGlidingDown && !hasSaiSin;
+  if (isSaiSinRow) {
+    sinceSaiSin = 0;
+    nextSaiSinDist = 160 + Math.random() * 90;
+    const sLane = Math.floor(Math.random() * 3);
+    spawnSaiSinItem(sLane, z);
+    for (let l = 0; l < 3; l++) {
+      if (l !== sLane && Math.random() < 0.35) spawnObstacle(l, 'low', z);
+    }
+    const zc = z + rowSpacing * 0.5;
+    for (let i = -2; i <= 2; i++) spawnOffering(sLane, zc + i * 1.8, 1.0);
+    rowSpacing = speed * 1.0;
+    return;
+  }
+
   const isGhostRow = sinceGhost >= nextGhostDist && dist > 30;
 
   if (isGhostRow) {
@@ -636,6 +651,16 @@ const sfx = {
   },
   flap: () => { noise(0.12, 0.14, 450); tone(180, 0.14, 'sine', 0.10, -50); },
   land: () => { noise(0.18, 0.25, 300); tone(95, 0.20, 'sine', 0.28, -35); },
+  saiSinPickup: () => {
+    tone(587.33, 0.16, 'sine', 0.24, 120);
+    setTimeout(() => tone(880, 0.20, 'triangle', 0.26, 160), 80);
+    setTimeout(() => tone(1174.66, 0.32, 'sine', 0.30, 60), 160);
+  },
+  saiSinBreak: () => {
+    noise(0.25, 0.45, 1800);
+    tone(1046.5, 0.18, 'triangle', 0.30, -250);
+    tone(523.25, 0.22, 'sine', 0.24, -100);
+  },
 };
 
 // ============================================================ game state
@@ -644,12 +669,129 @@ const ui = {
   hud: $('hud'), score: $('score'), hudBest: $('hudBest'), offerN: $('offerN'), bar: $('barfill'), hint: $('hint'),
   pip: $('pip'), vig: $('vig'), flash: $('flash'), menu: $('menu'), over: $('over'),
   pauseOverlay: $('pauseOverlay'), pauseBtn: $('pauseBtn'),
-  krahangBadge: $('krahangBadge'), krahangBarFill: $('krahangBarFill'),
+  krahangBadge: $('krahangBadge'), krahangBarFill: $('krahangBarFill'), saiSinBadge: $('saiSinBadge'),
   fScore: $('fScore'), fOffer: $('fOffer'), fBest: $('fBest'),
 };
 
-// ============================================================ collectibles (🪽 กระด้งผีกระหัง)
+// ============================================================ collectibles (🪽 กระด้ง & 🧵 สายสิญจน์มงคล)
 const collectibles = [];
+let hasSaiSin = false;
+let sinceSaiSin = 0, nextSaiSinDist = 95 + Math.random() * 45;
+
+// 🧵 Sacred Sai Sin Shield Group attached to playerRoot
+const saiSinShieldGroup = new THREE.Group();
+const shieldDomeGeo = new THREE.SphereGeometry(1.08, 22, 16);
+const shieldDomeMat = new THREE.MeshBasicMaterial({
+  color: 0x67e8f9,
+  transparent: true,
+  opacity: 0.24,
+  wireframe: false,
+  side: THREE.DoubleSide
+});
+const shieldDome = new THREE.Mesh(shieldDomeGeo, shieldDomeMat);
+saiSinShieldGroup.add(shieldDome);
+
+// Sacred Braided Holy Thread Torus Rings
+const threadMatA = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
+const ringA = new THREE.Mesh(new THREE.TorusGeometry(1.10, 0.038, 10, 32), threadMatA);
+ringA.rotation.x = Math.PI * 0.35;
+saiSinShieldGroup.add(ringA);
+
+const threadMatB = new THREE.MeshBasicMaterial({ color: 0x67e8f9 });
+const ringB = new THREE.Mesh(new THREE.TorusGeometry(1.10, 0.038, 10, 32), threadMatB);
+ringB.rotation.y = Math.PI * 0.40;
+saiSinShieldGroup.add(ringB);
+
+saiSinShieldGroup.position.set(0, 0.95, 0);
+saiSinShieldGroup.visible = false;
+playerRoot.add(saiSinShieldGroup);
+
+function spawnSaiSinItem(lane, z) {
+  const g = new THREE.Group();
+  
+  // Floating crystal pearl
+  const pearlGeo = new THREE.SphereGeometry(0.34, 18, 18);
+  const pearlMat = new THREE.MeshStandardMaterial({
+    color: 0xf8fafc,
+    emissive: 0x22d3ee,
+    emissiveIntensity: 0.65,
+    roughness: 0.15,
+    metalness: 0.1
+  });
+  const pearl = new THREE.Mesh(pearlGeo, pearlMat);
+  g.add(pearl);
+
+  // Twin Holy Thread loops
+  const torusA = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.042, 10, 28), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }));
+  torusA.rotation.x = 0.55;
+  g.add(torusA);
+
+  const torusB = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.042, 10, 28), new THREE.MeshStandardMaterial({ color: 0x67e8f9, emissive: 0x06b6d4, emissiveIntensity: 0.4 }));
+  torusB.rotation.y = 0.65;
+  g.add(torusB);
+
+  // Ground prayer ring
+  const ringGeo = new THREE.RingGeometry(0.50, 0.68, 30);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x67e8f9, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+  const groundRing = new THREE.Mesh(ringGeo, ringMat);
+  groundRing.rotation.x = -Math.PI / 2; groundRing.position.y = -0.42;
+  g.add(groundRing);
+
+  const pLight = new THREE.PointLight(0x67e8f9, 1.8, 5.0);
+  pLight.position.set(0, 0.25, 0);
+  g.add(pLight);
+
+  g.position.set((lane - 1) * LANE_W, 0.95, z);
+  scene.add(g);
+  collectibles.push({
+    mesh: g,
+    lane,
+    type: 'saiSin',
+    got: false,
+    update: (dt, clk) => {
+      g.rotation.y += dt * 3.0;
+      torusA.rotation.z += dt * 2.5;
+      torusB.rotation.x += dt * 2.8;
+      g.position.y = 0.95 + Math.sin(clk * 4.5) * 0.15;
+      groundRing.scale.setScalar(0.92 + Math.sin(clk * 5.0) * 0.12);
+    }
+  });
+}
+
+function activateSaiSinShield() {
+  hasSaiSin = true;
+  saiSinShieldGroup.visible = true;
+  sinceSaiSin = 0;
+  sfx.saiSinPickup();
+  if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'block';
+  ui.flash.style.transition = 'none';
+  ui.flash.style.backgroundColor = 'rgba(103, 232, 249, 0.38)';
+  ui.flash.style.opacity = 0.45;
+  requestAnimationFrame(() => {
+    ui.flash.style.transition = 'opacity .5s';
+    ui.flash.style.opacity = 0;
+    ui.flash.style.backgroundColor = '';
+  });
+}
+
+function consumeSaiSinShield(o) {
+  hasSaiSin = false;
+  saiSinShieldGroup.visible = false;
+  if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'none';
+  sfx.saiSinBreak();
+  invuln = 1.8;
+  o.hit = true;
+  scene.remove(o.mesh);
+  // Blessed holy burst flash (No stumble, no speed loss, no ghost gap loss!)
+  ui.flash.style.transition = 'none';
+  ui.flash.style.backgroundColor = 'rgba(103, 232, 249, 0.55)';
+  ui.flash.style.opacity = 0.65;
+  requestAnimationFrame(() => {
+    ui.flash.style.transition = 'opacity .45s';
+    ui.flash.style.opacity = 0;
+    ui.flash.style.backgroundColor = '';
+  });
+}
 const SKY_Y = 14.0;
 const MAX_FLY_T = 7.5;
 let flyT = 0, isGlidingDown = false, flapTimer = 0, skyOfferTimer = 0;
@@ -746,7 +888,7 @@ function reset() {
   speed = 16; speedMul = 1; dist = 0; offerCount = 0; tPlay = 0;
   gap = gz = GHOST_START_GAP; gx = 0;
   lane = 1; px = 0; py = 0; vy = 0; slideT = 0; invuln = 0; stumble = 0; shake = 0; landingGrace = 0;
-  flyT = 0; isGlidingDown = false; sinceKrahang = 0; nextKrahangDist = 180 + Math.random() * 80;
+  flyT = 0; isGlidingDown = false; sinceKrahang = 0; nextKrahangDist = 180 + Math.random() * 80; hasSaiSin = false; sinceSaiSin = 0; nextSaiSinDist = 95 + Math.random() * 45; if (saiSinShieldGroup) saiSinShieldGroup.visible = false; if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'none';
   if (player && player.setKrahangVisible) player.setKrahangVisible(false);
   if (ui.krahangBadge) ui.krahangBadge.style.display = 'none';
   sinceRow = 0; rowSpacing = 26; sinceDecor = 0; sinceGhost = 0; nextGhostDist = 45 + Math.random() * 30; hbTimer = 0; deadT = 0;
@@ -797,6 +939,8 @@ window.triggerStart = start;
 window.triggerDie = die;
 window.triggerSpawnGhost = (l, z) => spawnObstacle(l, 'ghost', z);
 window.triggerSpawnKrahang = (l, z) => spawnKrahangItem(l, z);
+window.triggerSpawnSaiSin = (l, z) => spawnSaiSinItem(l, z);
+window.triggerSaiSin = () => activateSaiSinShield();
 window.triggerFly = () => activateKrahangFlight();
 window.getGameState = () => ({ flyT, py, offerCount, state, gap, dist, deadT });
 let deathTimer = null;
@@ -1062,6 +1206,7 @@ function update(dt) {
     sinceGhost += dz;
     if (flyT <= 0 && !isGlidingDown) {
       sinceKrahang += dz;
+      sinceSaiSin += dz;
     }
     sinceRow += dz; if (sinceRow >= rowSpacing) { sinceRow = 0; spawnRow(); }
 
@@ -1073,7 +1218,11 @@ function update(dt) {
       if (cz > 12) { scene.remove(c.mesh); collectibles.splice(i, 1); continue; }
       if (!c.got && c.lane === lane && Math.abs(cz) < 1.15 && py < 2.2) {
         c.got = true; scene.remove(c.mesh); collectibles.splice(i, 1);
-        activateKrahangFlight();
+        if (c.type === 'saiSin') {
+          activateSaiSinShield();
+        } else {
+          activateKrahangFlight();
+        }
       }
     }
 
@@ -1090,8 +1239,11 @@ function update(dt) {
         else if (o.type === 'ghost') hit = py < 2.3;
         else hit = py < 2.3;
         if (hit) {
-          o.hit = true; invuln = 1.4; stumble = 0.95; shake = 0.85;
-          gap -= 2.8;
+          if (hasSaiSin) {
+            consumeSaiSinShield(o);
+          } else {
+            o.hit = true; invuln = 1.4; stumble = 0.95; shake = 0.85;
+            gap -= 2.8;
           if (o.type === 'ghost') {
             sfx.ghostScare();
             ui.flash.style.transition = 'none'; ui.flash.style.opacity = 0.65;
@@ -1104,6 +1256,7 @@ function update(dt) {
             ui.flash.style.transition = 'none'; ui.flash.style.opacity = 0.35;
           }
           requestAnimationFrame(() => { ui.flash.style.transition = 'opacity .4s'; ui.flash.style.opacity = 0; });
+          }
         }
       }
       if (o.type === 'ghost' && !o.hit && !o.passed && oz > 1.2) {
@@ -1164,6 +1317,13 @@ function update(dt) {
     playerRoot.position.set(px, py, 0);
   }
   animateRunner(dt, state === 'play');
+  if (hasSaiSin && saiSinShieldGroup.visible) {
+    ringA.rotation.z += dt * 3.2;
+    ringA.rotation.x += dt * 1.8;
+    ringB.rotation.z -= dt * 2.8;
+    ringB.rotation.y += dt * 2.2;
+    shieldDome.scale.setScalar(1.0 + Math.sin(clock * 5.0) * 0.04);
+  }
   if (state === 'play') {
     const blink = invuln > 0 && flyT <= 0 && !isGlidingDown && Math.floor(clock * 20) % 2 === 0;
     player.group.visible = !blink;
