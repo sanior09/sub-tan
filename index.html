@@ -56,6 +56,13 @@
   .s-title{font-size:12.5px;font-weight:800;color:#cffafe;letter-spacing:.4px;text-shadow:0 1px 4px #000;margin-bottom:4px}
   .s-bar{height:6px;width:150px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;border:1px solid rgba(103,232,249,.3)}
   #saiSinBarFill{height:100%;width:100%;background:linear-gradient(90deg,#67e8f9,#38bdf8);border-radius:4px;transition:width .08s linear}
+  #fantaBadge{display:none;background:rgba(36,12,18,.94);border:2px solid #ef4444;border-radius:14px;
+    padding:7px 14px;width:fit-content;box-shadow:0 4px 20px rgba(239,68,68,.5);pointer-events:none;
+    margin-top:4px;animation:fantaGlow 1.0s infinite alternate}
+  @keyframes fantaGlow{from{box-shadow:0 4px 14px rgba(239,68,68,.35)}to{box-shadow:0 4px 26px rgba(239,68,68,.85)}}
+  .f-title{font-size:12.5px;font-weight:800;color:#fecaca;letter-spacing:.4px;text-shadow:0 1px 4px #000;margin-bottom:4px}
+  .f-bar{height:6px;width:150px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;border:1px solid rgba(239,68,68,.4)}
+  #fantaBarFill{height:100%;width:100%;background:linear-gradient(90deg,#ef4444,#f97316);border-radius:4px;transition:width .08s linear}
   .k-bar{height:7px;width:150px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;border:1px solid rgba(255,210,58,.3)}
   #krahangBarFill{height:100%;width:100%;background:linear-gradient(90deg,#ffd23a,#ff7a18);border-radius:4px;transition:width .08s linear}
   #pauseOverlay{display:none;z-index:10;background:radial-gradient(ellipse at center,rgba(10,12,28,.8),rgba(0,0,0,.92))}
@@ -214,6 +221,10 @@
     <div id="saiSinBadge">
       <div class="s-title">🧵 สายสิญจน์มงคล (<span id="saiSinTimerText">20</span>s)</div>
       <div class="s-bar"><div id="saiSinBarFill"></div></div>
+    </div>
+    <div id="fantaBadge">
+      <div class="f-title">🥤 น้ำแดงแฟนต้าติดสปีด (<span id="fantaTimerText">7</span>s)</div>
+      <div class="f-bar"><div id="fantaBarFill"></div></div>
     </div>
   </div>
 </div>

@@ -560,6 +560,21 @@ function spawnRow() {
     return;
   }
 
+  const isFantaRow = sinceFanta >= nextFantaDist && dist > 40 && flyT <= 0 && !isGlidingDown && !hasFanta;
+  if (isFantaRow) {
+    sinceFanta = 0;
+    nextFantaDist = 170 + Math.random() * 90;
+    const fLane = Math.floor(Math.random() * 3);
+    spawnFantaItem(fLane, z);
+    for (let l = 0; l < 3; l++) {
+      if (l !== fLane && Math.random() < 0.35) spawnObstacle(l, 'low', z);
+    }
+    const zc = z + rowSpacing * 0.5;
+    for (let i = -2; i <= 2; i++) spawnOffering(fLane, zc + i * 1.8, 1.0);
+    rowSpacing = speed * 1.0;
+    return;
+  }
+
   const isGhostRow = sinceGhost >= nextGhostDist && dist > 30;
 
   if (isGhostRow) {
@@ -661,6 +676,22 @@ const sfx = {
     tone(1046.5, 0.18, 'triangle', 0.30, -250);
     tone(523.25, 0.22, 'sine', 0.24, -100);
   },
+  fantaPickup: () => {
+    noise(0.12, 0.28, 2200);
+    tone(523.25, 0.12, 'sine', 0.25, 80);
+    setTimeout(() => tone(659.25, 0.12, 'sine', 0.28, 100), 70);
+    setTimeout(() => tone(783.99, 0.14, 'sine', 0.30, 120), 140);
+    setTimeout(() => tone(1046.5, 0.22, 'triangle', 0.32, 160), 210);
+  },
+  fantaSmash: () => {
+    noise(0.35, 0.40, 1200);
+    tone(180, 0.25, 'triangle', 0.35, -120);
+    tone(90, 0.30, 'sawtooth', 0.28, -60);
+  },
+  fantaExpire: () => {
+    tone(587.33, 0.18, 'sine', 0.18, -140);
+    setTimeout(() => tone(392.00, 0.24, 'sine', 0.14, -100), 90);
+  },
   saiSinExpire: () => {
     tone(440, 0.20, 'sine', 0.15, -160);
     setTimeout(() => tone(293.66, 0.24, 'sine', 0.12, -80), 80);
@@ -675,6 +706,7 @@ const ui = {
   pauseOverlay: $('pauseOverlay'), pauseBtn: $('pauseBtn'),
   krahangBadge: $('krahangBadge'), krahangBarFill: $('krahangBarFill'),
   saiSinBadge: $('saiSinBadge'), saiSinBarFill: $('saiSinBarFill'), saiSinTimerText: $('saiSinTimerText'),
+  fantaBadge: $('fantaBadge'), fantaBarFill: $('fantaBarFill'), fantaTimerText: $('fantaTimerText'),
   fScore: $('fScore'), fOffer: $('fOffer'), fBest: $('fBest'),
 };
 
@@ -684,6 +716,11 @@ const MAX_SAISIN_T = 20.0;
 let hasSaiSin = false;
 let saiSinT = 0;
 let sinceSaiSin = 0, nextSaiSinDist = 95 + Math.random() * 45;
+
+const MAX_FANTA_T = 7.5;
+let hasFanta = false;
+let fantaT = 0;
+let sinceFanta = 0, nextFantaDist = 110 + Math.random() * 60;
 
 // 🧵 Sacred Sai Sin Shield Group attached to playerRoot
 const saiSinShieldGroup = new THREE.Group();
@@ -712,6 +749,26 @@ saiSinShieldGroup.add(ringB);
 saiSinShieldGroup.position.set(0, 0.95, 0);
 saiSinShieldGroup.visible = false;
 playerRoot.add(saiSinShieldGroup);
+
+// 🥤 Fanta Red Nitro Dash Aura Group attached to playerRoot
+const fantaAuraGroup = new THREE.Group();
+const fantaConeMat = new THREE.MeshBasicMaterial({
+  color: 0xef4444,
+  wireframe: true,
+  transparent: true,
+  opacity: 0.65
+});
+const fantaCone = new THREE.Mesh(new THREE.ConeGeometry(0.78, 2.2, 12, 1, true), fantaConeMat);
+fantaCone.rotation.x = Math.PI * 0.5; // trailing behind like rocket exhaust
+fantaAuraGroup.add(fantaCone);
+
+const fantaRingMat = new THREE.MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.75 });
+const fantaRing = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.045, 8, 24), fantaRingMat);
+fantaAuraGroup.add(fantaRing);
+
+fantaAuraGroup.position.set(0, 0.82, -0.15);
+fantaAuraGroup.visible = false;
+playerRoot.add(fantaAuraGroup);
 
 function spawnSaiSinItem(lane, z) {
   const g = new THREE.Group();
@@ -763,6 +820,114 @@ function spawnSaiSinItem(lane, z) {
       groundRing.scale.setScalar(0.92 + Math.sin(clk * 5.0) * 0.12);
     }
   });
+}
+
+function spawnFantaItem(lane, z) {
+  const g = new THREE.Group();
+
+  // Glass bottle cylinder with ruby red soda liquid
+  const sodaMat = new THREE.MeshStandardMaterial({
+    color: 0xef4444,
+    emissive: 0xdc2626,
+    emissiveIntensity: 0.75,
+    roughness: 0.15,
+    transparent: true,
+    opacity: 0.92
+  });
+  const bottleBody = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.22, 0.65, 16), sodaMat);
+  g.add(bottleBody);
+
+  // Bottle shoulder & neck
+  const bottleNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.20, 0.38, 16), sodaMat);
+  bottleNeck.position.y = 0.44;
+  g.add(bottleNeck);
+
+  // Fanta orange label
+  const labelMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+  const label = new THREE.Mesh(new THREE.CylinderGeometry(0.206, 0.206, 0.24, 16), labelMat);
+  label.position.y = 0.02;
+  g.add(label);
+
+  // Iconic green tilted straw
+  const strawMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.3 });
+  const straw = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.55, 10), strawMat);
+  straw.position.set(0.04, 0.72, 0.02);
+  straw.rotation.z = -0.28;
+  straw.rotation.x = 0.14;
+  g.add(straw);
+
+  // Ground crimson pulse ring
+  const ringGeo = new THREE.RingGeometry(0.48, 0.68, 28);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+  const groundRing = new THREE.Mesh(ringGeo, ringMat);
+  groundRing.rotation.x = -Math.PI / 2;
+  groundRing.position.y = -0.42;
+  g.add(groundRing);
+
+  const pLight = new THREE.PointLight(0xef4444, 2.2, 5.5);
+  pLight.position.set(0, 0.3, 0);
+  g.add(pLight);
+
+  g.position.set((lane - 1) * LANE_W, 0.95, z);
+  scene.add(g);
+  collectibles.push({
+    mesh: g,
+    lane,
+    type: 'fanta',
+    got: false,
+    update: (dt, clk) => {
+      g.rotation.y += dt * 3.4;
+      g.position.y = 0.95 + Math.sin(clk * 4.8) * 0.14;
+      groundRing.scale.setScalar(0.92 + Math.sin(clk * 5.2) * 0.12);
+    }
+  });
+}
+
+function activateFantaBoost() {
+  hasFanta = true;
+  fantaT = MAX_FANTA_T;
+  fantaAuraGroup.visible = true;
+  sinceFanta = 0;
+  sfx.fantaPickup();
+  if (ui.fantaBadge) {
+    ui.fantaBadge.style.display = 'block';
+    if (ui.fantaBarFill) ui.fantaBarFill.style.width = '100%';
+    if (ui.fantaTimerText) ui.fantaTimerText.textContent = `${Math.ceil(MAX_FANTA_T)}s`;
+  }
+  // Intense fiery red screen flash
+  ui.flash.style.transition = 'none';
+  ui.flash.style.backgroundColor = 'rgba(239, 68, 68, 0.45)';
+  ui.flash.style.opacity = 0.55;
+  requestAnimationFrame(() => {
+    ui.flash.style.transition = 'opacity .5s';
+    ui.flash.style.opacity = 0;
+    ui.flash.style.backgroundColor = '';
+  });
+}
+
+function expireFantaBoost() {
+  hasFanta = false;
+  fantaT = 0;
+  fantaAuraGroup.visible = false;
+  if (ui.fantaBadge) ui.fantaBadge.style.display = 'none';
+  sfx.fantaExpire();
+}
+
+function ramObstacleWithFanta(o) {
+  o.hit = true;
+  sfx.fantaSmash();
+  shake = Math.max(shake, 0.50);
+  offerCount += 2;
+  ui.offerN.textContent = offerCount;
+  ui.flash.style.transition = 'none';
+  ui.flash.style.backgroundColor = 'rgba(239, 68, 68, 0.42)';
+  ui.flash.style.opacity = 0.48;
+  requestAnimationFrame(() => {
+    ui.flash.style.transition = 'opacity .35s';
+    ui.flash.style.opacity = 0;
+    ui.flash.style.backgroundColor = '';
+  });
+  scene.remove(o.mesh);
 }
 
 function activateSaiSinShield() {
@@ -909,7 +1074,7 @@ function reset() {
   speed = 16; speedMul = 1; dist = 0; offerCount = 0; tPlay = 0;
   gap = gz = GHOST_START_GAP; gx = 0;
   lane = 1; px = 0; py = 0; vy = 0; slideT = 0; invuln = 0; stumble = 0; shake = 0; landingGrace = 0;
-  flyT = 0; isGlidingDown = false; sinceKrahang = 0; nextKrahangDist = 180 + Math.random() * 80; hasSaiSin = false; saiSinT = 0; sinceSaiSin = 0; nextSaiSinDist = 95 + Math.random() * 45; if (saiSinShieldGroup) saiSinShieldGroup.visible = false; if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'none';
+  flyT = 0; isGlidingDown = false; sinceKrahang = 0; nextKrahangDist = 180 + Math.random() * 80; hasSaiSin = false; saiSinT = 0; sinceSaiSin = 0; nextSaiSinDist = 95 + Math.random() * 45; if (saiSinShieldGroup) saiSinShieldGroup.visible = false; if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'none'; hasFanta = false; fantaT = 0; sinceFanta = 0; nextFantaDist = 110 + Math.random() * 60; if (fantaAuraGroup) fantaAuraGroup.visible = false; if (ui.fantaBadge) ui.fantaBadge.style.display = 'none';
   if (player && player.setKrahangVisible) player.setKrahangVisible(false);
   if (ui.krahangBadge) ui.krahangBadge.style.display = 'none';
   sinceRow = 0; rowSpacing = 26; sinceDecor = 0; sinceGhost = 0; nextGhostDist = 45 + Math.random() * 30; hbTimer = 0; deadT = 0;
@@ -962,8 +1127,10 @@ window.triggerSpawnGhost = (l, z) => spawnObstacle(l, 'ghost', z);
 window.triggerSpawnKrahang = (l, z) => spawnKrahangItem(l, z);
 window.triggerSpawnSaiSin = (l, z) => spawnSaiSinItem(l, z);
 window.triggerSaiSin = () => activateSaiSinShield();
+window.triggerSpawnFanta = (l, z) => spawnFantaItem(l, z);
+window.triggerFanta = () => activateFantaBoost();
 window.triggerFly = () => activateKrahangFlight();
-window.getGameState = () => ({ flyT, py, offerCount, state, gap, dist, deadT, hasSaiSin, saiSinT });
+window.getGameState = () => ({ flyT, py, offerCount, state, gap, dist, deadT, hasSaiSin, saiSinT, hasFanta, fantaT });
 let deathTimer = null;
 function showDeathButtons() {
   if (!ui.over) return;
@@ -1131,7 +1298,8 @@ function update(dt) {
     speed = Math.min(34, 16 + tPlay * 0.25);
     const targetMul = stumble > 0 ? 0.6 : 1;
     speedMul += (targetMul - speedMul) * Math.min(1, dt * 4);
-    const dz = speed * speedMul * dt;
+    const boostSpeed = hasFanta ? 14 : 0;
+    const dz = (speed + boostSpeed) * speedMul * dt;
     dist += dz * 0.5;
 
     // lane / jump / slide
@@ -1201,6 +1369,27 @@ function update(dt) {
     if (invuln > 0) invuln -= dt;
     if (stumble > 0) stumble -= dt;
 
+    // Fanta Red Nitro Dash timer & countdown HUD
+    if (hasFanta) {
+      fantaT -= dt;
+      if (fantaT <= 0) {
+        expireFantaBoost();
+      } else {
+        if (ui.fantaBarFill) {
+          const pct = Math.max(0, Math.min(100, (fantaT / MAX_FANTA_T) * 100));
+          ui.fantaBarFill.style.width = pct + '%';
+        }
+        if (ui.fantaTimerText) {
+          ui.fantaTimerText.textContent = `${Math.ceil(fantaT)}s`;
+        }
+        if (fantaT < 2.5) {
+          fantaAuraGroup.visible = Math.floor(clock * 14) % 2 === 0;
+        } else {
+          fantaAuraGroup.visible = true;
+        }
+      }
+    }
+
     // Holy Thread Shield timer & countdown HUD
     if (hasSaiSin) {
       saiSinT -= dt;
@@ -1225,7 +1414,10 @@ function update(dt) {
 
     // ghost gap: constantly closing in fast ONLY when running on the ground (paused during landing grace)!
     if (flyT <= 0 && !isGlidingDown) {
-      if (landingGrace > 0) {
+      if (hasFanta) {
+        gap = GHOST_MAX_GAP;
+        gz = Math.max(gz, GHOST_MAX_GAP + 2.5);
+      } else if (landingGrace > 0) {
         landingGrace -= dt;
         gap = GHOST_MAX_GAP;
         gz = Math.max(gz, GHOST_MAX_GAP);
@@ -1250,6 +1442,7 @@ function update(dt) {
     if (flyT <= 0 && !isGlidingDown) {
       sinceKrahang += dz;
       sinceSaiSin += dz;
+      sinceFanta += dz;
     }
     sinceRow += dz; if (sinceRow >= rowSpacing) { sinceRow = 0; spawnRow(); }
 
@@ -1261,7 +1454,9 @@ function update(dt) {
       if (cz > 12) { scene.remove(c.mesh); collectibles.splice(i, 1); continue; }
       if (!c.got && c.lane === lane && Math.abs(cz) < 1.15 && py < 2.2) {
         c.got = true; scene.remove(c.mesh); collectibles.splice(i, 1);
-        if (c.type === 'saiSin') {
+        if (c.type === 'fanta') {
+          activateFantaBoost();
+        } else if (c.type === 'saiSin') {
           activateSaiSinShield();
         } else {
           activateKrahangFlight();
@@ -1282,7 +1477,9 @@ function update(dt) {
         else if (o.type === 'ghost') hit = py < 2.3;
         else hit = py < 2.3;
         if (hit) {
-          if (hasSaiSin) {
+          if (hasFanta) {
+            ramObstacleWithFanta(o);
+          } else if (hasSaiSin) {
             consumeSaiSinShield(o);
           } else {
             o.hit = true; invuln = 1.4; stumble = 0.95; shake = 0.85;
@@ -1367,6 +1564,11 @@ function update(dt) {
     ringB.rotation.y += dt * 2.2;
     shieldDome.scale.setScalar(1.0 + Math.sin(clock * 5.0) * 0.04);
   }
+  if (hasFanta) {
+    fantaCone.rotation.z += dt * 16.0;
+    fantaRing.rotation.y += dt * 8.0;
+    fantaCone.scale.set(1.0 + Math.sin(clock * 26) * 0.16, 1.0 + Math.cos(clock * 22) * 0.20, 1.0);
+  }
   if (state === 'play') {
     const blink = invuln > 0 && flyT <= 0 && !isGlidingDown && Math.floor(clock * 20) % 2 === 0;
     player.group.visible = !blink;
@@ -1442,6 +1644,12 @@ function update(dt) {
   }
   const isHigh = py > 2.0;
   if (isHigh) {
+    const baseFov = (W / H < 0.8 ? 74 : 62);
+    const targetFov = baseFov + (hasFanta ? 8 : 0);
+    if (Math.abs(mainCam.fov - targetFov) > 0.05) {
+      mainCam.fov += (targetFov - mainCam.fov) * Math.min(1, dt * 6);
+      mainCam.updateProjectionMatrix();
+    }
     pipCam.position.set(px * 0.8 + 0.85, py + 1.2, -4.2);
     pipCam.lookAt(px, py + 0.6, 4.0);
   } else {
