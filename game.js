@@ -45,6 +45,7 @@ const GEO = {
   sph: new THREE.SphereGeometry(1, 14, 10),
   garland: new THREE.TorusGeometry(0.3, 0.1, 8, 18),
   garlandPlane: new THREE.PlaneGeometry(0.95, 0.95),
+  fantaPlane: new THREE.PlaneGeometry(0.75, 1.45),
 };
 const garlandTex = (() => {
   const t = new THREE.Texture();
@@ -55,6 +56,15 @@ const garlandTex = (() => {
     const icon = document.getElementById('garlandIcon');
     if (icon) icon.src = window.GARLAND_PNG;
   }
+  return t;
+})();
+const fantaTex = (() => {
+  const t = new THREE.Texture();
+  const im = new Image();
+  im.onload = () => { t.image = im; t.needsUpdate = true; };
+  im.src = (window.FANTA_PNG || 'Image/fanta.png');
+  const icon = document.getElementById('fantaHudIcon');
+  if (icon) icon.src = (window.FANTA_PNG || 'Image/fanta.png');
   return t;
 })();
 const MAT = {
@@ -69,6 +79,8 @@ const MAT = {
   garlandB: new THREE.MeshBasicMaterial({ color: 0xff6a1a }),
   garlandPic: new THREE.MeshBasicMaterial({
     map: garlandTex, transparent: true, alphaTest: 0.08, side: THREE.DoubleSide, fog: false }),
+  fantaPic: new THREE.MeshBasicMaterial({
+    map: fantaTex, transparent: true, alphaTest: 0.08, side: THREE.DoubleSide, fog: false }),
 };
 
 function stripeTexture() {
@@ -752,21 +764,42 @@ playerRoot.add(saiSinShieldGroup);
 
 // 🥤 Fanta Red Nitro Dash Aura Group attached to playerRoot
 const fantaAuraGroup = new THREE.Group();
-const fantaConeMat = new THREE.MeshBasicMaterial({
+// 1. Sleek Ruby Nitro Barrier Dome (Smooth, no ugly wireframe!)
+const fantaDomeGeo = new THREE.SphereGeometry(1.08, 22, 16);
+const fantaDomeMat = new THREE.MeshBasicMaterial({
   color: 0xef4444,
-  wireframe: true,
   transparent: true,
-  opacity: 0.65
+  opacity: 0.22,
+  side: THREE.DoubleSide
 });
-const fantaCone = new THREE.Mesh(new THREE.ConeGeometry(0.78, 2.2, 12, 1, true), fantaConeMat);
-fantaCone.rotation.x = Math.PI * 0.5; // trailing behind like rocket exhaust
-fantaAuraGroup.add(fantaCone);
+const fantaDome = new THREE.Mesh(fantaDomeGeo, fantaDomeMat);
+fantaAuraGroup.add(fantaDome);
 
-const fantaRingMat = new THREE.MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.75 });
-const fantaRing = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.045, 8, 24), fantaRingMat);
-fantaAuraGroup.add(fantaRing);
+// 2. Dual Spinning Nitro Torus Rings (Ruby Red & Flame Orange)
+const fantaRingA = new THREE.Mesh(
+  new THREE.TorusGeometry(1.12, 0.038, 10, 32),
+  new THREE.MeshBasicMaterial({ color: 0xef4444 })
+);
+fantaRingA.rotation.x = Math.PI * 0.30;
+fantaAuraGroup.add(fantaRingA);
 
-fantaAuraGroup.position.set(0, 0.82, -0.15);
+const fantaRingB = new THREE.Mesh(
+  new THREE.TorusGeometry(1.12, 0.038, 10, 32),
+  new THREE.MeshBasicMaterial({ color: 0xf97316 })
+);
+fantaRingB.rotation.y = Math.PI * 0.35;
+fantaAuraGroup.add(fantaRingB);
+
+// 3. Ground Nitro Flame Disc at the runner's feet
+const fantaGroundRing = new THREE.Mesh(
+  new THREE.RingGeometry(0.50, 0.78, 24),
+  new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide, transparent: true, opacity: 0.70 })
+);
+fantaGroundRing.rotation.x = -Math.PI / 2;
+fantaGroundRing.position.y = -0.92;
+fantaAuraGroup.add(fantaGroundRing);
+
+fantaAuraGroup.position.set(0, 0.95, 0);
 fantaAuraGroup.visible = false;
 playerRoot.add(fantaAuraGroup);
 
@@ -825,50 +858,29 @@ function spawnSaiSinItem(lane, z) {
 function spawnFantaItem(lane, z) {
   const g = new THREE.Group();
 
-  // Glass bottle cylinder with ruby red soda liquid
-  const sodaMat = new THREE.MeshStandardMaterial({
-    color: 0xef4444,
-    emissive: 0xdc2626,
-    emissiveIntensity: 0.75,
-    roughness: 0.15,
-    transparent: true,
-    opacity: 0.92
-  });
-  const bottleBody = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.22, 0.65, 16), sodaMat);
-  g.add(bottleBody);
+  // Authentic Real-world Fanta Red Bottle (Dual Cross-Quads for true 3D appearance from all viewing angles!)
+  const bottleA = new THREE.Mesh(GEO.fantaPlane, MAT.fantaPic);
+  bottleA.position.y = 0.08;
+  g.add(bottleA);
 
-  // Bottle shoulder & neck
-  const bottleNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.20, 0.38, 16), sodaMat);
-  bottleNeck.position.y = 0.44;
-  g.add(bottleNeck);
-
-  // Fanta orange label
-  const labelMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
-  const label = new THREE.Mesh(new THREE.CylinderGeometry(0.206, 0.206, 0.24, 16), labelMat);
-  label.position.y = 0.02;
-  g.add(label);
-
-  // Iconic green tilted straw
-  const strawMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.3 });
-  const straw = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.55, 10), strawMat);
-  straw.position.set(0.04, 0.72, 0.02);
-  straw.rotation.z = -0.28;
-  straw.rotation.x = 0.14;
-  g.add(straw);
+  const bottleB = new THREE.Mesh(GEO.fantaPlane, MAT.fantaPic);
+  bottleB.rotation.y = Math.PI * 0.5;
+  bottleB.position.y = 0.08;
+  g.add(bottleB);
 
   // Ground crimson pulse ring
-  const ringGeo = new THREE.RingGeometry(0.48, 0.68, 28);
+  const ringGeo = new THREE.RingGeometry(0.42, 0.65, 28);
   const ringMat = new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
   const groundRing = new THREE.Mesh(ringGeo, ringMat);
   groundRing.rotation.x = -Math.PI / 2;
-  groundRing.position.y = -0.42;
+  groundRing.position.y = -0.55;
   g.add(groundRing);
 
-  const pLight = new THREE.PointLight(0xef4444, 2.2, 5.5);
-  pLight.position.set(0, 0.3, 0);
+  const pLight = new THREE.PointLight(0xef4444, 2.5, 6.0);
+  pLight.position.set(0, 0.35, 0);
   g.add(pLight);
 
-  g.position.set((lane - 1) * LANE_W, 0.95, z);
+  g.position.set((lane - 1) * LANE_W, 1.05, z);
   scene.add(g);
   collectibles.push({
     mesh: g,
@@ -876,8 +888,8 @@ function spawnFantaItem(lane, z) {
     type: 'fanta',
     got: false,
     update: (dt, clk) => {
-      g.rotation.y += dt * 3.4;
-      g.position.y = 0.95 + Math.sin(clk * 4.8) * 0.14;
+      g.rotation.y += dt * 3.2;
+      g.position.y = 1.05 + Math.sin(clk * 4.8) * 0.15;
       groundRing.scale.setScalar(0.92 + Math.sin(clk * 5.2) * 0.12);
     }
   });
@@ -1565,9 +1577,12 @@ function update(dt) {
     shieldDome.scale.setScalar(1.0 + Math.sin(clock * 5.0) * 0.04);
   }
   if (hasFanta) {
-    fantaCone.rotation.z += dt * 16.0;
-    fantaRing.rotation.y += dt * 8.0;
-    fantaCone.scale.set(1.0 + Math.sin(clock * 26) * 0.16, 1.0 + Math.cos(clock * 22) * 0.20, 1.0);
+    fantaRingA.rotation.z += dt * 4.2;
+    fantaRingA.rotation.x += dt * 2.5;
+    fantaRingB.rotation.z -= dt * 3.8;
+    fantaRingB.rotation.y += dt * 2.8;
+    fantaDome.scale.setScalar(1.0 + Math.sin(clock * 6.5) * 0.05);
+    fantaGroundRing.rotation.z += dt * 5.0;
   }
   if (state === 'play') {
     const blink = invuln > 0 && flyT <= 0 && !isGlidingDown && Math.floor(clock * 20) % 2 === 0;
