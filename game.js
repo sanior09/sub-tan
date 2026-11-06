@@ -659,8 +659,8 @@ function spawnKrahangItem(lane, z) {
   const g = new THREE.Group();
   const tL = C.makeKrahangTray ? C.makeKrahangTray(0.44) : new THREE.Group();
   const tR = C.makeKrahangTray ? C.makeKrahangTray(0.44) : new THREE.Group();
-  tL.position.set(-0.35, 0, 0); tL.rotation.set(0.2, 0.4, 0.35);
-  tR.position.set(0.35, 0, 0); tR.rotation.set(0.2, -0.4, -0.35);
+  tL.position.set(-0.35, 0, 0); tL.rotation.set(0.15, 0.15, 0.30);
+  tR.position.set(0.35, 0, 0); tR.rotation.set(0.15, -0.15, -0.30);
   g.add(tL); g.add(tR);
 
   const ringGeo = new THREE.RingGeometry(0.52, 0.70, 30);
@@ -827,8 +827,10 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'arrowright' || k === 'd') moveLane(1);
   else if (k === 'arrowup' || k === 'w' || k === ' ') jump();
   else if (k === 'arrowdown' || k === 's') slide();
+  else if (k === 'f') activateKrahangFlight();
   else if (k === 'enter' && state !== 'play' && (state === 'menu' || ui.over.style.display === 'flex')) start();
 });
+window.activateKrahangFlight = activateKrahangFlight;
 let touch = null;
 function swipeStart(x, y) { touch = { x, y, done: false }; }
 function swipeMove(x, y) {

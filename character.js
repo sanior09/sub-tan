@@ -276,7 +276,7 @@ const bambooWeaveTex = (() => {
   t.repeat.set(4, 4);
   return t;
 })();
-const bambooMat = new THREE.MeshLambertMaterial({ map: bambooWeaveTex, color: 0xffffff });
+const bambooMat = new THREE.MeshLambertMaterial({ map: bambooWeaveTex, color: 0xffffff, side: THREE.DoubleSide });
 const bambooRimMat = new THREE.MeshLambertMaterial({ color: 0x5a3416, emissive: 0x1a0d06 });
 const bambooStrutMat = new THREE.MeshLambertMaterial({ color: 0x76461f });
 const charmMatShared = new THREE.MeshBasicMaterial({ color: 0xffd23a });
@@ -284,24 +284,35 @@ const charmMatShared = new THREE.MeshBasicMaterial({ color: 0xffd23a });
 function makeKrahangTray(radius) {
   const rad = radius || 0.50;
   const g = new THREE.Group();
-  // Woven bamboo circular tray
-  const disc = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, 0.022, 26), bambooMat);
-  disc.rotation.x = Math.PI / 2;
+  // Woven bamboo circular tray — แนวนอน (Horizontal in XZ plane)
+  // Default CylinderGeometry height is along Y axis, circular face is horizontal in XZ plane
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, 0.022, 28), bambooMat);
   g.add(disc);
-  // Sturdy dark bamboo outer rim
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(rad, 0.034, 8, 26), bambooRimMat);
+
+  // Sturdy dark bamboo outer rim (Torus in Three.js defaults to XY plane; rotateX lays it flat in XZ)
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(rad, 0.034, 8, 28), bambooRimMat);
+  rim.rotation.x = Math.PI / 2;
   g.add(rim);
-  // Bamboo cross struts on back
-  const strutH = new THREE.Mesh(boxG, bambooStrutMat);
-  strutH.scale.set(rad * 1.95, 0.022, 0.022); strutH.position.z = -0.015;
-  g.add(strutH);
-  const strutV = new THREE.Mesh(boxG, bambooStrutMat);
-  strutV.scale.set(0.022, rad * 1.95, 0.022); strutV.position.z = -0.015;
-  g.add(strutV);
-  // Center golden woven button / charm
+
+  // Bamboo cross struts underneath the tray (y = -0.015)
+  const strutX = new THREE.Mesh(boxG, bambooStrutMat);
+  strutX.scale.set(rad * 1.95, 0.020, 0.022); strutX.position.y = -0.015;
+  g.add(strutX);
+  const strutZ = new THREE.Mesh(boxG, bambooStrutMat);
+  strutZ.scale.set(0.022, 0.020, rad * 1.95); strutZ.position.y = -0.015;
+  g.add(strutZ);
+
+  // Center golden woven button / charm on top (y = 0.016)
   const charm = new THREE.Mesh(sphG, charmMatShared);
-  charm.scale.set(0.038, 0.038, 0.02); charm.position.z = 0.016;
+  charm.scale.set(0.038, 0.018, 0.038); charm.position.y = 0.016;
   g.add(charm);
+
+  // Bamboo grip handle loop underneath
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.065, 0.014, 6, 12, Math.PI), bambooRimMat);
+  handle.rotation.x = Math.PI; // hangs downward under the tray
+  handle.position.set(0, -0.020, 0);
+  g.add(handle);
+
   return g;
 }
 
@@ -336,8 +347,8 @@ function makeRunner() {
   const pivotL = new THREE.Group();
   pivotL.position.set(-0.20, 0, 0);
   const wingL = makeKrahangTray(0.65);
-  wingL.position.set(-0.56, 0, 0);       // extends outward to the left
-  wingL.rotation.set(0.12, 0.12, 0);
+  wingL.position.set(-0.56, 0, 0);       // extends outward horizontally to the left
+  wingL.rotation.set(0.08, 0, 0.02);
   pivotL.add(wingL);
   krahangRig.add(pivotL);
 
@@ -345,17 +356,17 @@ function makeRunner() {
   const pivotR = new THREE.Group();
   pivotR.position.set(0.20, 0, 0);
   const wingR = makeKrahangTray(0.65);
-  wingR.position.set(0.56, 0, 0);        // extends outward to the right
-  wingR.rotation.set(0.12, -0.12, 0);
+  wingR.position.set(0.56, 0, 0);        // extends outward horizontally to the right
+  wingR.rotation.set(0.08, 0, -0.02);
   pivotR.add(wingR);
   krahangRig.add(pivotR);
 
   // Golden magic wing lights
   const wingLightL = new THREE.PointLight(0xffd23a, 0.9, 3.2);
-  wingLightL.position.set(-0.56, 0, 0.12);
+  wingLightL.position.set(-0.56, 0.08, 0);
   pivotL.add(wingLightL);
   const wingLightR = new THREE.PointLight(0xffd23a, 0.9, 3.2);
-  wingLightR.position.set(0.56, 0, 0.12);
+  wingLightR.position.set(0.56, 0.08, 0);
   pivotR.add(wingLightR);
 
   krahangRig.visible = false;

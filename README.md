@@ -51,7 +51,7 @@
       <sub>สับตีนแตกหลบสิ่งกีดขวาง เก็บพวงมาลัยมะลิ พร้อมหน้าต่างกล้องหลังส่องผีตาลวิ่งกวดตามแบบเรียลไทม์</sub>
     </td>
     <td align="center" width="25%">
-      <img src="Image/preview-krahang.jpg?v=5" alt="กระด้งผีกระหังลอยฟ้า สไตล์ Subway Surfers Jetpack" style="border-radius: 8px; width: 100%; object-fit: cover;" />
+      <img src="Image/preview-krahang.jpg?v=6" alt="กระด้งผีกระหังลอยฟ้า สไตล์ Subway Surfers Jetpack" style="border-radius: 8px; width: 100%; object-fit: cover;" />
       <br /><br />
       <b>🪽 กระด้งผีกระหังลอยฟ้า!</b><br>
       <sub>กระพือปีกกระด้งทะยานขึ้นฟ้า บินหลบผีตาล พร้อมโยกเลนเลี้ยวซ้าย-ขวาเก็บริบบิ้นพวงมาลัยกลางเวหา</sub>
