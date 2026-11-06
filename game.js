@@ -15,8 +15,13 @@ const JUMP_V = 10, GRAVITY = 30;
 
 // ============================================================ renderer / scene
 const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (window.innerWidth < 768);
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: !isMobile,
+  powerPreference: 'high-performance'
+});
+renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio || 1, 1.35) : Math.min(window.devicePixelRatio || 1, 2));
 renderer.setScissorTest(true);
 
 const scene = new THREE.Scene();
@@ -459,11 +464,6 @@ function makeStandingGhost(isRoadside) {
 
   // Floating red spirit light for in-lane ghosts
   let wisp = null;
-  if (!isRoadside) {
-    wisp = new THREE.PointLight(0xff2244, 1.4, 8.0);
-    wisp.position.set(0, 1.35, 0.25);
-    g.add(wisp);
-  }
 
   const phase = Math.random() * Math.PI * 2;
   const update = (dt, t) => {
@@ -834,9 +834,7 @@ function spawnSaiSinItem(lane, z) {
   groundRing.rotation.x = -Math.PI / 2; groundRing.position.y = -0.42;
   g.add(groundRing);
 
-  const pLight = new THREE.PointLight(0x67e8f9, 1.8, 5.0);
-  pLight.position.set(0, 0.25, 0);
-  g.add(pLight);
+  // Emissive pearl and glow ring provide lighting with zero shader churn
 
   g.position.set((lane - 1) * LANE_W, 0.95, z);
   scene.add(g);
@@ -876,9 +874,7 @@ function spawnFantaItem(lane, z) {
   groundRing.position.y = -0.55;
   g.add(groundRing);
 
-  const pLight = new THREE.PointLight(0xef4444, 2.5, 6.0);
-  pLight.position.set(0, 0.35, 0);
-  g.add(pLight);
+  // Sprite and glow ring provide lighting with zero shader churn
 
   g.position.set((lane - 1) * LANE_W, 1.05, z);
   scene.add(g);
@@ -1009,9 +1005,7 @@ function spawnKrahangItem(lane, z) {
   ring.rotation.x = -Math.PI / 2; ring.position.y = -0.42;
   g.add(ring);
 
-  const pLight = new THREE.PointLight(0xffd23a, 1.5, 4.5);
-  pLight.position.set(0, 0.25, 0);
-  g.add(pLight);
+  // Emissive gold ring provides lighting with zero shader churn
 
   g.position.set((lane - 1) * LANE_W, 0.95, z);
   scene.add(g);
@@ -1704,6 +1698,7 @@ function resize() {
 }
 window.addEventListener('resize', resize); resize();
 
+let pipFrame = 0;
 function render() {
   // show ghost in main camera during the menu shrine intro and on jumpscare; hide while running so its back doesn't block the track
   ghostRoot.visible = (state !== 'play');
@@ -1711,11 +1706,15 @@ function render() {
   renderer.render(scene, mainCam);
   ghostRoot.visible = true;
   if (ui.pip.style.display === 'block') {
-    const b = 2;   // keep inside the CSS border
-    const x = pipRect.x + b, w = pipRect.w - b * 2;
-    const y = H - pipRect.y - pipRect.h + b, h = pipRect.h - b * 2;   // GL origin is bottom-left
-    renderer.setViewport(x, y, w, h); renderer.setScissor(x, y, w, h);
-    renderer.render(scene, pipCam);
+    pipFrame++;
+    // On mobile, throttle PiP rear-view camera to every 2nd frame (30 FPS) to eliminate double-render overhead!
+    if (!isMobile || pipFrame % 2 === 0) {
+      const b = 2;   // keep inside the CSS border
+      const x = pipRect.x + b, w = pipRect.w - b * 2;
+      const y = H - pipRect.y - pipRect.h + b, h = pipRect.h - b * 2;   // GL origin is bottom-left
+      renderer.setViewport(x, y, w, h); renderer.setScissor(x, y, w, h);
+      renderer.render(scene, pipCam);
+    }
   }
 }
 
