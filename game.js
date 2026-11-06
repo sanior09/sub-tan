@@ -692,6 +692,7 @@ function spawnKrahangItem(lane, z) {
 function activateKrahangFlight() {
   flyT = MAX_FLY_T;
   isGlidingDown = false;
+  landingGrace = 0;
   invuln = MAX_FLY_T + 4.0;
   gap = GHOST_MAX_GAP;
   gz = GHOST_MAX_GAP;
@@ -730,7 +731,7 @@ function activateKrahangFlight() {
 }
 let state = 'menu', paused = false;
 let speed = 16, speedMul = 1, dist = 0, offerCount = 0, tPlay = 0, gap = GHOST_START_GAP, gz = GHOST_START_GAP, gx = 0;
-let lane = 1, px = 0, py = 0, vy = 0, slideT = 0, invuln = 0, stumble = 0, shake = 0, runPhase = 0;
+let lane = 1, px = 0, py = 0, vy = 0, slideT = 0, invuln = 0, stumble = 0, shake = 0, runPhase = 0, landingGrace = 0;
 let hbTimer = 0, deadT = 0, clock = 0;
 let best = +(localStorage.getItem('tanGhostBest') || 0);
 
@@ -744,7 +745,7 @@ function reset() {
   clearWorld();
   speed = 16; speedMul = 1; dist = 0; offerCount = 0; tPlay = 0;
   gap = gz = GHOST_START_GAP; gx = 0;
-  lane = 1; px = 0; py = 0; vy = 0; slideT = 0; invuln = 0; stumble = 0; shake = 0;
+  lane = 1; px = 0; py = 0; vy = 0; slideT = 0; invuln = 0; stumble = 0; shake = 0; landingGrace = 0;
   flyT = 0; isGlidingDown = false; sinceKrahang = 0; nextKrahangDist = 180 + Math.random() * 80;
   if (player && player.setKrahangVisible) player.setKrahangVisible(false);
   if (ui.krahangBadge) ui.krahangBadge.style.display = 'none';
@@ -1000,24 +1001,29 @@ function update(dt) {
       py += (0 - py) * Math.min(1, dt * 3.4);
       vy = 0;
       gap = GHOST_MAX_GAP; // Ghost Tan remains safely far behind during descent!
-      gz = Math.max(gz, GHOST_MAX_GAP);
+      gz = Math.max(gz, GHOST_MAX_GAP + 4.0);
       if (py < 0.15) {
         py = 0;
         isGlidingDown = false;
+        landingGrace = 4.5;             // 4.5s safe runway immunity where ghost cannot catch player!
         if (player.setKrahangVisible) player.setKrahangVisible(false);
         sfx.land();
-        invuln = Math.max(invuln, 2.5); // 2.5s landing grace immunity!
+        invuln = Math.max(invuln, 4.0); // 4.0s landing grace immunity against obstacle stumbles!
         gap = GHOST_MAX_GAP;            // Ghost Tan stays at safe max distance
-        gz = GHOST_MAX_GAP;
+        gz = GHOST_MAX_GAP + 5.0;       // Ghost visibly starts far behind upon touchdown
         sinceKrahang = 0;               // Reset ground travel distance upon touchdown
         nextKrahangDist = 220 + Math.random() * 120;
-        sinceRow = 0; rowSpacing = speed * 2.5; // Clear runway upon touchdown!
-        // Clear any ground obstacles in the immediate touchdown area (within 28m ahead)
+        sinceRow = 0; rowSpacing = speed * 2.8; // Clear obstacle runway upon touchdown!
+        // Clear any ground obstacles ahead for 75m to guarantee a wide open landing strip
         for (let i = obstacles.length - 1; i >= 0; i--) {
-          if (obstacles[i].mesh.position.z > -28) {
+          if (obstacles[i].mesh.position.z > -75) {
             scene.remove(obstacles[i].mesh);
             obstacles.splice(i, 1);
           }
+        }
+        // Spawn glorious runway of garlands (พวงมาลัย) right in front of the player on landing lane!
+        for (let z = -6; z >= -65; z -= 3.2) {
+          spawnOffering(lane, z, 1.0);
         }
       }
     } else {
@@ -1030,14 +1036,20 @@ function update(dt) {
     if (invuln > 0) invuln -= dt;
     if (stumble > 0) stumble -= dt;
 
-    // ghost gap: constantly closing in fast ONLY when running on the ground!
+    // ghost gap: constantly closing in fast ONLY when running on the ground (paused during landing grace)!
     if (flyT <= 0 && !isGlidingDown) {
-      const drain = Math.min(1.85, 0.70 + tPlay * 0.008);
-      gap -= drain * dt;
-      gap = Math.min(gap, GHOST_MAX_GAP);
+      if (landingGrace > 0) {
+        landingGrace -= dt;
+        gap = GHOST_MAX_GAP;
+        gz = Math.max(gz, GHOST_MAX_GAP);
+      } else {
+        const drain = Math.min(1.85, 0.70 + tPlay * 0.008);
+        gap -= drain * dt;
+        gap = Math.min(gap, GHOST_MAX_GAP);
+      }
     } else {
       gap = GHOST_MAX_GAP;
-      gz = Math.max(gz, GHOST_MAX_GAP - 0.5);
+      gz = Math.max(gz, GHOST_MAX_GAP + 2.0);
     }
 
     // world scroll
@@ -1128,7 +1140,7 @@ function update(dt) {
     hbTimer -= dt;
     if (hbTimer <= 0) { sfx.beat(); hbTimer = 0.35 + Math.min(1, Math.max(0, (gap - 2) / 14)) * 0.8; }
 
-    if (gap <= CATCH_GAP && flyT <= 0 && !isGlidingDown) die();
+    if (gap <= CATCH_GAP && flyT <= 0 && !isGlidingDown && landingGrace <= 0) die();
   } else if (state === 'dead') {
     deadT += dt;
     const k = Math.min(1, deadT / 0.5);
