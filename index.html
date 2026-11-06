@@ -53,7 +53,9 @@
     padding:7px 14px;width:fit-content;box-shadow:0 4px 20px rgba(103,232,249,.45);pointer-events:none;
     margin-top:4px;animation:saiSinGlow 1.2s infinite alternate}
   @keyframes saiSinGlow{from{box-shadow:0 4px 14px rgba(103,232,249,.3)}to{box-shadow:0 4px 24px rgba(103,232,249,.75)}}
-  .s-title{font-size:12.5px;font-weight:800;color:#cffafe;letter-spacing:.4px;text-shadow:0 1px 4px #000}
+  .s-title{font-size:12.5px;font-weight:800;color:#cffafe;letter-spacing:.4px;text-shadow:0 1px 4px #000;margin-bottom:4px}
+  .s-bar{height:6px;width:150px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;border:1px solid rgba(103,232,249,.3)}
+  #saiSinBarFill{height:100%;width:100%;background:linear-gradient(90deg,#67e8f9,#38bdf8);border-radius:4px;transition:width .08s linear}
   .k-bar{height:7px;width:150px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;border:1px solid rgba(255,210,58,.3)}
   #krahangBarFill{height:100%;width:100%;background:linear-gradient(90deg,#ffd23a,#ff7a18);border-radius:4px;transition:width .08s linear}
   #pauseOverlay{display:none;z-index:10;background:radial-gradient(ellipse at center,rgba(10,12,28,.8),rgba(0,0,0,.92))}
@@ -210,7 +212,8 @@
       <div class="k-bar"><div id="krahangBarFill"></div></div>
     </div>
     <div id="saiSinBadge">
-      <div class="s-title">🧵 สายสิญจน์มงคล (คุ้มกัน 1 ครั้ง)</div>
+      <div class="s-title">🧵 สายสิญจน์มงคล (<span id="saiSinTimerText">20</span>s)</div>
+      <div class="s-bar"><div id="saiSinBarFill"></div></div>
     </div>
   </div>
 </div>

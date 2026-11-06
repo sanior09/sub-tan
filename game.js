@@ -661,6 +661,10 @@ const sfx = {
     tone(1046.5, 0.18, 'triangle', 0.30, -250);
     tone(523.25, 0.22, 'sine', 0.24, -100);
   },
+  saiSinExpire: () => {
+    tone(440, 0.20, 'sine', 0.15, -160);
+    setTimeout(() => tone(293.66, 0.24, 'sine', 0.12, -80), 80);
+  },
 };
 
 // ============================================================ game state
@@ -669,13 +673,16 @@ const ui = {
   hud: $('hud'), score: $('score'), hudBest: $('hudBest'), offerN: $('offerN'), bar: $('barfill'), hint: $('hint'),
   pip: $('pip'), vig: $('vig'), flash: $('flash'), menu: $('menu'), over: $('over'),
   pauseOverlay: $('pauseOverlay'), pauseBtn: $('pauseBtn'),
-  krahangBadge: $('krahangBadge'), krahangBarFill: $('krahangBarFill'), saiSinBadge: $('saiSinBadge'),
+  krahangBadge: $('krahangBadge'), krahangBarFill: $('krahangBarFill'),
+  saiSinBadge: $('saiSinBadge'), saiSinBarFill: $('saiSinBarFill'), saiSinTimerText: $('saiSinTimerText'),
   fScore: $('fScore'), fOffer: $('fOffer'), fBest: $('fBest'),
 };
 
 // ============================================================ collectibles (🪽 กระด้ง & 🧵 สายสิญจน์มงคล)
 const collectibles = [];
+const MAX_SAISIN_T = 20.0;
 let hasSaiSin = false;
+let saiSinT = 0;
 let sinceSaiSin = 0, nextSaiSinDist = 95 + Math.random() * 45;
 
 // 🧵 Sacred Sai Sin Shield Group attached to playerRoot
@@ -763,7 +770,12 @@ function activateSaiSinShield() {
   saiSinShieldGroup.visible = true;
   sinceSaiSin = 0;
   sfx.saiSinPickup();
-  if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'block';
+  saiSinT = MAX_SAISIN_T;
+  if (ui.saiSinBadge) {
+    ui.saiSinBadge.style.display = 'block';
+    if (ui.saiSinBarFill) ui.saiSinBarFill.style.width = '100%';
+    if (ui.saiSinTimerText) ui.saiSinTimerText.textContent = `${Math.ceil(MAX_SAISIN_T)}s`;
+  }
   ui.flash.style.transition = 'none';
   ui.flash.style.backgroundColor = 'rgba(103, 232, 249, 0.38)';
   ui.flash.style.opacity = 0.45;
@@ -774,7 +786,16 @@ function activateSaiSinShield() {
   });
 }
 
+function expireSaiSinShield() {
+  hasSaiSin = false;
+  saiSinT = 0;
+  saiSinShieldGroup.visible = false;
+  if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'none';
+  sfx.saiSinExpire();
+}
+
 function consumeSaiSinShield(o) {
+  saiSinT = 0;
   hasSaiSin = false;
   saiSinShieldGroup.visible = false;
   if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'none';
@@ -888,7 +909,7 @@ function reset() {
   speed = 16; speedMul = 1; dist = 0; offerCount = 0; tPlay = 0;
   gap = gz = GHOST_START_GAP; gx = 0;
   lane = 1; px = 0; py = 0; vy = 0; slideT = 0; invuln = 0; stumble = 0; shake = 0; landingGrace = 0;
-  flyT = 0; isGlidingDown = false; sinceKrahang = 0; nextKrahangDist = 180 + Math.random() * 80; hasSaiSin = false; sinceSaiSin = 0; nextSaiSinDist = 95 + Math.random() * 45; if (saiSinShieldGroup) saiSinShieldGroup.visible = false; if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'none';
+  flyT = 0; isGlidingDown = false; sinceKrahang = 0; nextKrahangDist = 180 + Math.random() * 80; hasSaiSin = false; saiSinT = 0; sinceSaiSin = 0; nextSaiSinDist = 95 + Math.random() * 45; if (saiSinShieldGroup) saiSinShieldGroup.visible = false; if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'none';
   if (player && player.setKrahangVisible) player.setKrahangVisible(false);
   if (ui.krahangBadge) ui.krahangBadge.style.display = 'none';
   sinceRow = 0; rowSpacing = 26; sinceDecor = 0; sinceGhost = 0; nextGhostDist = 45 + Math.random() * 30; hbTimer = 0; deadT = 0;
@@ -942,7 +963,7 @@ window.triggerSpawnKrahang = (l, z) => spawnKrahangItem(l, z);
 window.triggerSpawnSaiSin = (l, z) => spawnSaiSinItem(l, z);
 window.triggerSaiSin = () => activateSaiSinShield();
 window.triggerFly = () => activateKrahangFlight();
-window.getGameState = () => ({ flyT, py, offerCount, state, gap, dist, deadT });
+window.getGameState = () => ({ flyT, py, offerCount, state, gap, dist, deadT, hasSaiSin, saiSinT });
 let deathTimer = null;
 function showDeathButtons() {
   if (!ui.over) return;
@@ -1180,6 +1201,28 @@ function update(dt) {
     if (invuln > 0) invuln -= dt;
     if (stumble > 0) stumble -= dt;
 
+    // Holy Thread Shield timer & countdown HUD
+    if (hasSaiSin) {
+      saiSinT -= dt;
+      if (saiSinT <= 0) {
+        expireSaiSinShield();
+      } else {
+        if (ui.saiSinBarFill) {
+          const pct = Math.max(0, Math.min(100, (saiSinT / MAX_SAISIN_T) * 100));
+          ui.saiSinBarFill.style.width = pct + '%';
+        }
+        if (ui.saiSinTimerText) {
+          ui.saiSinTimerText.textContent = `${Math.ceil(saiSinT)}s`;
+        }
+        // Warning blink during final 3.5 seconds before expiration
+        if (saiSinT < 3.5) {
+          saiSinShieldGroup.visible = Math.floor(clock * 12) % 2 === 0;
+        } else {
+          saiSinShieldGroup.visible = true;
+        }
+      }
+    }
+
     // ghost gap: constantly closing in fast ONLY when running on the ground (paused during landing grace)!
     if (flyT <= 0 && !isGlidingDown) {
       if (landingGrace > 0) {
@@ -1317,7 +1360,7 @@ function update(dt) {
     playerRoot.position.set(px, py, 0);
   }
   animateRunner(dt, state === 'play');
-  if (hasSaiSin && saiSinShieldGroup.visible) {
+  if (hasSaiSin) {
     ringA.rotation.z += dt * 3.2;
     ringA.rotation.x += dt * 1.8;
     ringB.rotation.z -= dt * 2.8;
