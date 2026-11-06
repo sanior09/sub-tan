@@ -762,65 +762,39 @@ saiSinShieldGroup.position.set(0, 0.95, 0);
 saiSinShieldGroup.visible = false;
 playerRoot.add(saiSinShieldGroup);
 
-// 🥤 Fanta Red Nitro Dash: Backward Blasting Light Streams (แสงไอพ่นพุ่งด้านหลัง!)
+// 🥤 Fanta Red Nitro Dash: Pure Orange Speed Streaks (เส้นสปีดไลน์สีส้มล้วนๆ)
 const fantaAuraGroup = new THREE.Group();
 
-const fantaFlameMat = new THREE.MeshBasicMaterial({
-  color: 0xef4444,
+const fantaStreakMat = new THREE.MeshBasicMaterial({
+  color: 0xff8800,
   transparent: true,
-  opacity: 0.75,
+  opacity: 0.85,
   side: THREE.DoubleSide
 });
-const fantaCoreMat = new THREE.MeshBasicMaterial({
-  color: 0xffea00,
+const fantaStreakBrightMat = new THREE.MeshBasicMaterial({
+  color: 0xffaa22,
   transparent: true,
   opacity: 0.92,
   side: THREE.DoubleSide
 });
 
-// Left & Right Outer Nitro Flame Beams (shooting backwards towards +Z)
-const fantaFlameL = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.16, 1.8, 10, 1, true), fantaFlameMat);
-fantaFlameL.rotation.x = -Math.PI * 0.5;
-fantaFlameL.position.set(-0.16, 0.88, 1.05);
-fantaAuraGroup.add(fantaFlameL);
+// 6 razor-sharp orange speed lines streaming backwards along flanks
+const streakConfigs = [
+  { x: -0.32, y: 0.85, z: 1.4, len: 2.8, w: 0.045, mat: fantaStreakBrightMat },
+  { x:  0.32, y: 0.85, z: 1.4, len: 2.8, w: 0.045, mat: fantaStreakBrightMat },
+  { x: -0.22, y: 0.40, z: 1.2, len: 2.4, w: 0.040, mat: fantaStreakMat },
+  { x:  0.22, y: 0.40, z: 1.2, len: 2.4, w: 0.040, mat: fantaStreakMat },
+  { x: -0.42, y: 0.65, z: 1.6, len: 3.0, w: 0.035, mat: fantaStreakMat },
+  { x:  0.42, y: 0.65, z: 1.6, len: 3.0, w: 0.035, mat: fantaStreakMat },
+];
 
-const fantaFlameR = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.16, 1.8, 10, 1, true), fantaFlameMat);
-fantaFlameR.rotation.x = -Math.PI * 0.5;
-fantaFlameR.position.set(0.16, 0.88, 1.05);
-fantaAuraGroup.add(fantaFlameR);
-
-// Left & Right Intense Core Jets (Yellow hot core)
-const fantaCoreL = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.08, 1.3, 8, 1, true), fantaCoreMat);
-fantaCoreL.rotation.x = -Math.PI * 0.5;
-fantaCoreL.position.set(-0.16, 0.88, 0.80);
-fantaAuraGroup.add(fantaCoreL);
-
-const fantaCoreR = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.08, 1.3, 8, 1, true), fantaCoreMat);
-fantaCoreR.rotation.x = -Math.PI * 0.5;
-fantaCoreR.position.set(0.16, 0.88, 0.80);
-fantaAuraGroup.add(fantaCoreR);
-
-// High-speed nitro light streaks shooting backward
-const fantaStreakMat = new THREE.MeshBasicMaterial({
-  color: 0xf97316,
-  transparent: true,
-  opacity: 0.65,
-  side: THREE.DoubleSide
+const fantaStreaks = streakConfigs.map((cfg) => {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(cfg.w, cfg.len), cfg.mat);
+  m.rotation.x = -Math.PI * 0.5;
+  m.position.set(cfg.x, cfg.y, cfg.z);
+  fantaAuraGroup.add(m);
+  return { mesh: m, baseZ: cfg.z, len: cfg.len };
 });
-const fantaStreakL = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 2.4), fantaStreakMat);
-fantaStreakL.rotation.x = -Math.PI * 0.5;
-fantaStreakL.position.set(-0.35, 0.92, 1.35);
-fantaAuraGroup.add(fantaStreakL);
-
-const fantaStreakR = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 2.4), fantaStreakMat);
-fantaStreakR.rotation.x = -Math.PI * 0.5;
-fantaStreakR.position.set(0.35, 0.92, 1.35);
-fantaAuraGroup.add(fantaStreakR);
-
-const fantaStreakMid = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 2.0), fantaFlameMat);
-fantaStreakMid.rotation.x = -Math.PI * 0.5;
-fantaStreakMid.position.set(0, 0.45, 1.25);
-fantaAuraGroup.add(fantaStreakMid);
 
 fantaAuraGroup.position.set(0, 0, 0);
 fantaAuraGroup.visible = false;
@@ -1594,15 +1568,11 @@ function update(dt) {
     shieldDome.scale.setScalar(1.0 + Math.sin(clock * 5.0) * 0.04);
   }
   if (hasFanta) {
-    const roarL = 1.0 + Math.sin(clock * 38) * 0.35 + Math.sin(clock * 50) * 0.15;
-    const roarR = 1.0 + Math.cos(clock * 42) * 0.35 + Math.cos(clock * 54) * 0.15;
-    fantaFlameL.scale.set(1.0 + Math.sin(clock * 25) * 0.2, 1.0 + Math.cos(clock * 30) * 0.2, Math.max(0.4, roarL));
-    fantaFlameR.scale.set(1.0 + Math.cos(clock * 27) * 0.2, 1.0 + Math.sin(clock * 32) * 0.2, Math.max(0.4, roarR));
-    fantaCoreL.scale.set(1, 1, Math.max(0.3, roarL * 0.9));
-    fantaCoreR.scale.set(1, 1, Math.max(0.3, roarR * 0.9));
-    fantaStreakL.position.z = 1.35 + Math.sin(clock * 20) * 0.25;
-    fantaStreakR.position.z = 1.35 + Math.cos(clock * 22) * 0.25;
-    fantaStreakMid.position.z = 1.25 + Math.sin(clock * 26) * 0.20;
+    fantaStreaks.forEach((st, idx) => {
+      st.mesh.position.z = st.baseZ + Math.sin(clock * 32 + idx * 1.4) * 0.35;
+      st.mesh.scale.y = 0.85 + Math.cos(clock * 28 + idx * 1.8) * 0.30;
+      st.mesh.visible = Math.sin(clock * 40 + idx * 2.1) > -0.75;
+    });
   }
   if (state === 'play') {
     const blink = invuln > 0 && flyT <= 0 && !isGlidingDown && Math.floor(clock * 20) % 2 === 0;
