@@ -172,7 +172,27 @@
   #over.ready #scareWrap{
     opacity:.25;filter:blur(8px) brightness(.35);transform:scale(1.05);
   }
+  #over.ready #scareImg{box-shadow:none}
   #over.ready #scareText{display:none}
+
+  /* Desktop & Landscape PC scaling for Jumpscare */
+  @media (min-aspect-ratio: 1/1), (min-width: 820px) {
+    #scareWrap {
+      background: radial-gradient(ellipse at center, rgba(35, 4, 10, .92) 0%, rgba(8, 2, 4, .98) 65%, #000 100%);
+    }
+    #scareImg {
+      width: auto;
+      height: min(76vh, 520px);
+      max-width: min(85vw, 440px);
+      object-fit: contain;
+      border-radius: 20px;
+      box-shadow: 0 0 50px rgba(255, 0, 40, .85), 0 0 0 2px rgba(255, 50, 70, .55);
+    }
+    #scareText {
+      bottom: 6%;
+      font-size: clamp(26px, 3.8vw, 44px);
+    }
+  }
 
   /* Content Card */
   #overContent{
