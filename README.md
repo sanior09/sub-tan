@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="https://sub-tan.onrender.com" target="_blank">
-  <img src="Image/og-banner.jpg?v=7" width="100%" alt="ผีตาลหลอน Beta - 3D Endless Runner Game" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
+  <img src="Image/og-banner.jpg" width="100%" alt="ผีตาลหลอน Beta - 3D Endless Runner Game" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
 </a>
 
 # 👻 ผีตาลหลอน Beta (Sub-Tan Beta)
@@ -39,25 +39,25 @@
 <table align="center" width="100%">
   <tr>
     <td align="center" width="25%">
-      <img src="Image/preview-intro.jpg?v=4" alt="ฉากบนบานหน้าศาล" style="border-radius: 8px; width: 100%; object-fit: cover;" />
+      <img src="Image/preview-intro.jpg" alt="ฉากบนบานหน้าศาล" style="border-radius: 8px; width: 100%; object-fit: cover;" />
       <br /><br />
       <b>⛩️ ฉากเปิดไหว้ศาลเจ้าพ่อตาล</b><br>
       <sub>น้องนักเรียนก้มกราบขอพรหน้าศาลพระภูมิสีทองคู่ พร้อมเครื่องเซ่นแฟนต้าแดง พวงมาลัย และผีตาลยืนจ้อง</sub>
     </td>
     <td align="center" width="25%">
-      <img src="Image/preview-gameplay.jpg?v=4" alt="ระบบวิ่ง 3 เลนพร้อมกล้องส่องหลัง PiP" style="border-radius: 8px; width: 100%; object-fit: cover;" />
+      <img src="Image/preview-gameplay.jpg" alt="ระบบวิ่ง 3 เลนพร้อมกล้องส่องหลัง PiP" style="border-radius: 8px; width: 100%; object-fit: cover;" />
       <br /><br />
       <b>🏃‍♂️ วิ่ง 3 เลน & กล้องหลัง PiP</b><br>
       <sub>สับตีนแตกหลบสิ่งกีดขวาง เก็บพวงมาลัยมะลิ พร้อมหน้าต่างกล้องหลังส่องผีตาลวิ่งกวดตามแบบเรียลไทม์</sub>
     </td>
     <td align="center" width="25%">
-      <img src="Image/preview-krahang.jpg?v=6" alt="กระด้งผีกระหังลอยฟ้า สไตล์ Subway Surfers Jetpack" style="border-radius: 8px; width: 100%; object-fit: cover;" />
+      <img src="Image/preview-krahang.jpg" alt="กระด้งผีกระหังลอยฟ้า สไตล์ Subway Surfers Jetpack" style="border-radius: 8px; width: 100%; object-fit: cover;" />
       <br /><br />
       <b>🪽 กระด้งผีกระหังลอยฟ้า!</b><br>
       <sub>กระพือปีกกระด้งทะยานขึ้นฟ้า บินหลบผีตาล พร้อมโยกเลนเลี้ยวซ้าย-ขวาเก็บริบบิ้นพวงมาลัยกลางเวหา</sub>
     </td>
     <td align="center" width="25%">
-      <img src="Image/preview-gameover.jpg?v=4" alt="ฉากจบเมื่อผีตาลจับได้และปุ่มเมนู" style="border-radius: 8px; width: 100%; object-fit: cover;" />
+      <img src="Image/preview-gameover.jpg" alt="ฉากจบเมื่อผีตาลจับได้และปุ่มเมนู" style="border-radius: 8px; width: 100%; object-fit: cover;" />
       <br /><br />
       <b>😱 ผีตาลจับได้แล้ว!</b><br>
       <sub>ฉาก Jump Scare เมื่อผีตาลประชิดตัว รายงานสถิติระยะทาง พร้อมปุ่ม "แก้บนใหม่อีกครั้ง" และปุ่ม "🏠 กลับสู่เมนู"</sub>
