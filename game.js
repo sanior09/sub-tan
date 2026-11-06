@@ -524,6 +524,11 @@ let sinceRow = 0, rowSpacing = 20;
 let sinceGhost = 0, nextGhostDist = 45 + Math.random() * 30;
 
 function spawnRow() {
+  if (flyT > 0) {
+    // While soaring through the sky, do not spawn ground obstacles under the player!
+    rowSpacing = speed * 1.2;
+    return;
+  }
   const z = SPAWN_Z;
   const isKrahangRow = sinceKrahang >= nextKrahangDist && dist > 35 && flyT <= 0;
   if (isKrahangRow) {
@@ -645,7 +650,7 @@ const ui = {
 
 // ============================================================ collectibles (🪽 กระด้งผีกระหัง)
 const collectibles = [];
-const SKY_Y = 7.4;
+const SKY_Y = 14.0;
 const MAX_FLY_T = 7.5;
 let flyT = 0, isGlidingDown = false, flapTimer = 0, skyOfferTimer = 0;
 let sinceKrahang = 0, nextKrahangDist = 75 + Math.random() * 45;
@@ -687,18 +692,31 @@ function spawnKrahangItem(lane, z) {
 function activateKrahangFlight() {
   flyT = MAX_FLY_T;
   isGlidingDown = false;
-  invuln = MAX_FLY_T + 1.8;
-  gap = Math.min(GHOST_MAX_GAP, gap + 3.2);
+  invuln = MAX_FLY_T + 2.0;
+  gap = Math.min(GHOST_MAX_GAP, gap + 4.0);
   sfx.krahangPickup();
   if (player.setKrahangVisible) player.setKrahangVisible(true);
   if (ui.krahangBadge) {
     ui.krahangBadge.style.display = 'block';
     if (ui.krahangBarFill) ui.krahangBarFill.style.width = '100%';
   }
-  // Immediately populate the sky with a waving ribbon of jasmine garlands!
-  for (let z = -10; z >= SPAWN_Z; z -= 3.6) {
-    const wave = Math.sin(z * 0.11);
-    const skyLane = wave < -0.32 ? 0 : wave > 0.32 ? 2 : 1;
+  // Clear any existing sky offerings
+  for (let i = offerings.length - 1; i >= 0; i--) {
+    if (offerings[i].mesh.position.y > 3.0) {
+      scene.remove(offerings[i].mesh);
+      offerings.splice(i, 1);
+    }
+  }
+  // 1. Ascending ramp of garlands during takeoff from current lane into the clouds!
+  spawnOffering(lane, -7, 4.0);
+  spawnOffering(lane, -10, 7.5);
+  spawnOffering(lane, -13, 11.0);
+  spawnOffering(lane, -16, SKY_Y);
+
+  // 2. Full soaring serpentine ribbon of garlands across lanes at SKY_Y (14m)
+  for (let z = -19; z >= SPAWN_Z; z -= 2.6) {
+    const wave = Math.sin((z + 19) * 0.11);
+    const skyLane = wave < -0.30 ? 0 : wave > 0.30 ? 2 : 1;
     spawnOffering(skyLane, z, SKY_Y);
   }
   ui.flash.style.transition = 'none';
@@ -870,7 +888,7 @@ function animateRunner(dt, running) {
     const anim = state === 'dead' ? 'Death' : state === 'menu' ? 'Sitting' : 'Running';
     player.play(anim, anim === 'Death' ? 0.12 : 0.15);
     if (player.actions.Running) {
-      const targetScale = air ? 0.28 : sl ? 0.18 : 1.35 + speed * 0.032;
+      const targetScale = flyT > 0 ? 0.08 : air ? 0.28 : sl ? 0.18 : 1.35 + speed * 0.032;
       player.actions.Running.timeScale += (targetScale - player.actions.Running.timeScale) * Math.min(1, dt * 14);
     }
     player.mixer.update(dt);
@@ -882,7 +900,7 @@ function animateRunner(dt, running) {
       if (player.incense) player.incense.visible = false;
       if (player.poseAction) player.poseAction(air, sl, dt);
       // In YXZ order: negative rotation.x reclines backward on its back (feet forward under the barrier!)
-      const lean = sl ? -1.32 : state === 'play' && !air ? 0.12 : 0;
+      const lean = sl ? -1.32 : flyT > 0 ? -0.22 : state === 'play' && !air ? 0.12 : 0;
       player.group.rotation.x += (lean - player.group.rotation.x) * k;
       player.group.rotation.y += (Math.PI - player.group.rotation.y) * Math.min(1, dt * 10);
       const targetY = sl ? 0.42 : 0;
@@ -951,14 +969,15 @@ function update(dt) {
         if (ui.krahangBadge) ui.krahangBadge.style.display = 'none';
       }
     } else if (isGlidingDown) {
-      py += (0 - py) * Math.min(1, dt * 3.8);
+      py += (0 - py) * Math.min(1, dt * 3.4);
       vy = 0;
-      if (py < 0.12) {
+      if (py < 0.15) {
         py = 0;
         isGlidingDown = false;
         if (player.setKrahangVisible) player.setKrahangVisible(false);
         sfx.land();
-        invuln = Math.max(invuln, 1.2);
+        invuln = Math.max(invuln, 1.4);
+        sinceRow = 0; rowSpacing = speed * 2.2; // clear runway upon touchdown!
       }
     } else {
       if (py > 0 || vy > 0) {
@@ -1040,10 +1059,14 @@ function update(dt) {
       const oz = o.mesh.position.z;
       if (oz > 12) { scene.remove(o.mesh); offerings.splice(i, 1); continue; }
       const isSky = o.mesh.position.y > 3.0;
-      const yClose = isSky ? Math.abs(py - o.mesh.position.y) < 1.6 : (py < 2.2 && !(slideT > 0 && o.mesh.position.y > 1.2));
-      if (!o.got && o.lane === lane && Math.abs(oz) < 1.05 && yClose) {
+      if (isSky && o.lane === lane && Math.abs(oz) < 4.2) {
+        o.mesh.position.y += (py - o.mesh.position.y) * Math.min(1, dt * 8.0);
+      }
+      const yClose = isSky ? Math.abs(py - o.mesh.position.y) < 2.5 : (py < 2.2 && !(slideT > 0 && o.mesh.position.y > 1.2));
+      const catchRadius = isSky ? 1.5 : 1.05;
+      if (!o.got && o.lane === lane && Math.abs(oz) < catchRadius && yClose) {
         o.got = true; scene.remove(o.mesh); offerings.splice(i, 1);
-        offerCount++; gap = Math.min(GHOST_MAX_GAP, gap + 0.55); sfx.coin();
+        offerCount++; gap = Math.min(GHOST_MAX_GAP, gap + 0.65); sfx.coin();
       }
     }
     for (let i = decor.length - 1; i >= 0; i--) {
@@ -1132,8 +1155,13 @@ function update(dt) {
     // smooth Subway Surfers camera swoop from shrine intro to chase view over first 0.65s
     const u = state === 'play' ? Math.min(1, tPlay / 0.65) : 1;
     const e = 1 - Math.pow(1 - u, 3);
-    const tx = cx + ox, ty = 4.0 + oy + py, tz = 6.8 + (py > 0 ? (py / SKY_Y) * 1.5 : 0);
-    const lx = cx, ly = 1.5 + py, lz = -9;
+    const isHigh = py > 2.0;
+    const camY = isHigh ? py + 2.2 : 4.0 + oy + py;
+    const camZ = isHigh ? 6.2 : 6.8;
+    const lookY = isHigh ? py + 0.8 : 1.5 + py;
+    const lookZ = isHigh ? -16.0 : -9.0;
+    const tx = cx + ox, ty = camY, tz = camZ;
+    const lx = cx, ly = lookY, lz = lookZ;
     mainCam.position.set(
       introPos.x + (tx - introPos.x) * e,
       introPos.y + (ty - introPos.y) * e,
@@ -1145,8 +1173,14 @@ function update(dt) {
       introLook.z + (lz - introLook.z) * e
     );
   }
-  pipCam.position.set(px * 0.9 + 1.05 + ox * 0.3, 2.35 + oy * 0.3 + py * 0.45, -3.6);
-  pipCam.lookAt(px + 0.15, 2.15 + py * 0.35, 5.2);
+  const isHigh = py > 2.0;
+  if (isHigh) {
+    pipCam.position.set(px * 0.8 + 0.85, py + 1.2, -4.2);
+    pipCam.lookAt(px, py + 0.6, 4.0);
+  } else {
+    pipCam.position.set(px * 0.9 + 1.05 + ox * 0.3, 2.35 + oy * 0.3, -3.6);
+    pipCam.lookAt(px + 0.15, 2.15, 5.2);
+  }
 
   // ----- HUD
   if (state === 'play') {

@@ -326,16 +326,44 @@ function makeRunner() {
   root.add(incense);
 
   const r = { group: root, mixer: null, actions: {}, current: null, fallback: null, incense, bones: {} };
+
+  // 🪽 Dedicated Krahang Wings Rig mounted to runner root (independent of bone twists!)
+  const krahangRig = new THREE.Group();
+  krahangRig.position.set(0, 1.28, -0.06); // upper back / shoulder height
+  root.add(krahangRig);
+
+  // Left wing pivot (at shoulder x = -0.20)
+  const pivotL = new THREE.Group();
+  pivotL.position.set(-0.20, 0, 0);
+  const wingL = makeKrahangTray(0.65);
+  wingL.position.set(-0.56, 0, 0);       // extends outward to the left
+  wingL.rotation.set(0.12, 0.12, 0);
+  pivotL.add(wingL);
+  krahangRig.add(pivotL);
+
+  // Right wing pivot (at shoulder x = +0.20)
+  const pivotR = new THREE.Group();
+  pivotR.position.set(0.20, 0, 0);
+  const wingR = makeKrahangTray(0.65);
+  wingR.position.set(0.56, 0, 0);        // extends outward to the right
+  wingR.rotation.set(0.12, -0.12, 0);
+  pivotR.add(wingR);
+  krahangRig.add(pivotR);
+
+  // Golden magic wing lights
+  const wingLightL = new THREE.PointLight(0xffd23a, 0.9, 3.2);
+  wingLightL.position.set(-0.56, 0, 0.12);
+  pivotL.add(wingLightL);
+  const wingLightR = new THREE.PointLight(0xffd23a, 0.9, 3.2);
+  wingLightR.position.set(0.56, 0, 0.12);
+  pivotR.add(wingLightR);
+
+  krahangRig.visible = false;
+  r.setKrahangVisible = (v) => { krahangRig.visible = !!v; };
+
   const useFallback = () => {
     r.fallback = makeHuman(false, true);
     root.add(r.fallback.group);
-    const wL = makeKrahangTray(0.50), wR = makeKrahangTray(0.50);
-    wL.position.set(-0.25, -0.15, 0); wL.rotation.z = 0.25;
-    wR.position.set(0.25, -0.15, 0); wR.rotation.z = -0.25;
-    r.fallback.armL.f.add(wL);
-    r.fallback.armR.f.add(wR);
-    wL.visible = false; wR.visible = false;
-    r.setKrahangVisible = (v) => { wL.visible = !!v; wR.visible = !!v; };
   };
   r.play = (name, fade) => {
     const a = r.actions[name]; if (!a || r.current === name) return;
@@ -361,23 +389,39 @@ function makeRunner() {
     }
   };
   r.poseKrahang = (clock, isFlying, banking) => {
-    if (!isFlying) return;
+    if (!isFlying) {
+      krahangRig.visible = false;
+      return;
+    }
+    krahangRig.visible = true;
+    const flap = Math.sin(clock * 13) * 0.40;
+    const bank = (banking || 0) * 0.42;
+
+    // Both wings flap UP together and DOWN together
+    pivotL.rotation.set(0.08, bank * 0.25, flap + bank);
+    pivotR.rotation.set(0.08, bank * 0.25, -flap + bank);
+
+    // Arms reach out sideways to hold each tray
     const b = r.bones;
-    if (b && b.lA && b.rA && b.lF && b.rF) {
-      const flap = Math.sin(clock * 14) * 0.42;
-      b.lA.rotation.set(-0.25, -0.18, -1.35 + flap - (banking || 0) * 0.38);
-      b.rA.rotation.set(-0.25, 0.18, 1.35 - flap - (banking || 0) * 0.38);
-      b.lF.rotation.set(0, -0.35, 0.15);
-      b.rF.rotation.set(0, 0.35, -0.15);
-      if (b.lUL && b.rUL) {
-        b.lUL.rotation.set(0.28, 0, 0.12);
-        b.rUL.rotation.set(0.28, 0, -0.12);
-      }
-    } else if (r.fallback) {
-      const flap = Math.sin(clock * 14) * 0.42;
+    if (b && b.lA && b.rA) {
+      b.lA.rotation.set(-0.25, -0.15, -1.35 + flap * 0.35 + bank);
+      b.rA.rotation.set(-0.25, 0.15, 1.35 - flap * 0.35 + bank);
+      if (b.lF) b.lF.rotation.set(0, -0.35, 0.15);
+      if (b.rF) b.rF.rotation.set(0, 0.35, -0.15);
+    }
+    // Legs trail smoothly backward like gliding through the air
+    if (b && b.lUL && b.rUL) {
+      b.lUL.rotation.set(0.45, 0, 0.12);
+      b.rUL.rotation.set(0.45, 0, -0.12);
+    }
+    if (b && b.lLL && b.rLL) {
+      b.lLL.rotation.set(0.35, 0, 0);
+      b.rLL.rotation.set(0.35, 0, 0);
+    }
+    if (r.fallback) {
       const f = r.fallback;
-      if (f.armL && f.armL.u) f.armL.u.rotation.set(-0.25, -0.18, -1.35 + flap - (banking || 0) * 0.38);
-      if (f.armR && f.armR.u) f.armR.u.rotation.set(-0.25, 0.18, 1.35 - flap - (banking || 0) * 0.38);
+      if (f.armL && f.armL.u) f.armL.u.rotation.set(-0.25, -0.15, -1.35 + flap * 0.35 + bank);
+      if (f.armR && f.armR.u) f.armR.u.rotation.set(-0.25, 0.15, 1.35 - flap * 0.35 + bank);
     }
   };
   r.posePray = (t) => {
@@ -681,28 +725,6 @@ function makeRunner() {
       headGroup.add(tuft);
       mHead.add(headGroup);
     }
-
-    // 5. 🪽 Mount Krahang Woven Bamboo Winnowing Trays to Forearms
-    const bLF = getBone('LeftForeArm'), bRF = getBone('RightForeArm');
-    const wingL = makeKrahangTray(0.58), wingR = makeKrahangTray(0.58);
-    if (bLF) {
-      const mLF = makeMount(bLF);
-      wingL.position.set(-0.38, -0.12, 0.04);
-      wingL.rotation.set(0.35, -0.65, 0.40);
-      mLF.add(wingL);
-    }
-    if (bRF) {
-      const mRF = makeMount(bRF);
-      wingR.position.set(0.38, -0.12, 0.04);
-      wingR.rotation.set(0.35, 0.65, -0.40);
-      mRF.add(wingR);
-    }
-    wingL.visible = false;
-    wingR.visible = false;
-    r.setKrahangVisible = (v) => {
-      wingL.visible = !!v;
-      wingR.visible = !!v;
-    };
 
     r.mixer = new THREE.AnimationMixer(model);
     const findClip = (n) => gltf.animations.find((c) => c.name === n) || gltf.animations[0];
