@@ -725,7 +725,7 @@ const ui = {
 
 // ============================================================ collectibles (🪽 กระด้ง & 🧵 สายสิญจน์มงคล)
 const collectibles = [];
-const MAX_SAISIN_T = 20.0;
+const MAX_SAISIN_T = 10.0;
 let hasSaiSin = false;
 let saiSinT = 0;
 let sinceSaiSin = 0, nextSaiSinDist = 95 + Math.random() * 45;
