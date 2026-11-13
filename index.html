@@ -147,7 +147,7 @@
   /* ---------- Overlays ---------- */
   .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;
     text-align:center;padding:24px;background:radial-gradient(ellipse at center,rgba(10,12,28,.72),rgba(0,0,0,.93))}
-  #menu.overlay{justify-content:space-between;padding:22px 18px 28px;cursor:pointer;
+  #menu.overlay{justify-content:space-between;padding:22px 18px 28px;
     background:linear-gradient(180deg,rgba(5,6,14,.68) 0%,transparent 28%,transparent 68%,rgba(5,6,14,.82) 100%)}
   .menu-top{display:flex;flex-direction:column;align-items:center;gap:6px}
   .vow-bubble{position:relative;background:rgba(255,255,255,.94);color:#181824;padding:10px 18px;border-radius:18px;
@@ -266,19 +266,45 @@
   #overBtns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:16px}
   #overBtns button{margin-top:0;padding:12px 24px;font-size:clamp(15px,3.2vw,18px);box-shadow:0 6px 20px rgba(255,40,80,.45);transition:transform .12s,box-shadow .12s}
   #overBtns #menuBtn,#overBtns #overLbBtn{animation:none}
-  .btn-lb{margin-top:6px;padding:10px 24px;font-size:15px;border-color:rgba(255,210,74,.7);color:#ffe066;background:rgba(15,18,34,.85);box-shadow:0 4px 16px rgba(0,0,0,.5)}
-  #lbSubmitWrap{margin-top:14px;width:100%;display:flex;flex-direction:column;align-items:center;gap:6px}
-  .lb-submit-row{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%}
-  #lbNickInput{
-    padding:9px 14px;border-radius:24px;border:1.5px solid rgba(255,210,74,.55);
-    background:rgba(12,16,30,.92);color:#fff;font:700 15px "Sarabun",Tahoma,sans-serif;
-    width:min(210px,54vw);outline:none;user-select:text;-webkit-user-select:text;touch-action:auto;
+  .btn-lb{margin-top:4px;padding:10px 24px;font-size:15px;border-color:rgba(255,210,74,.7);color:#ffe066;background:rgba(15,18,34,.85);box-shadow:0 4px 16px rgba(0,0,0,.5)}
+
+  /* ---------- Pre-Run Nickname Box (Main Menu) & Auto-Save Banner ---------- */
+  #menuNickBox{
+    display:flex;flex-direction:column;align-items:center;gap:5px;width:min(380px,92vw);margin-top:2px;
   }
-  #lbNickInput:focus{border-color:#ffd24a;box-shadow:0 0 12px rgba(255,210,74,.35)}
-  #lbSubmitBtn{margin-top:0;padding:9px 18px;font-size:15px;box-shadow:0 4px 14px rgba(255,40,80,.4)}
-  #lbSubmitBtn:disabled{opacity:.6;cursor:not-allowed;transform:none}
-  #lbSubmitMsg{font-size:13px;font-weight:700;min-height:18px;color:#9ef5c0;text-shadow:0 1px 4px #000}
-  #lbSubmitMsg.err{color:#ff8f9c}
+  .nick-saved{
+    display:flex;align-items:center;gap:8px;padding:6px 12px 6px 14px;border-radius:24px;
+    background:rgba(12,16,30,.88);border:1.5px solid rgba(103,232,249,.55);
+    font-size:14px;font-weight:700;color:#e0f2fe;box-shadow:0 4px 14px rgba(0,0,0,.55);
+  }
+  .nick-saved b{color:#ffd24a}
+  .nick-edit-btn{
+    margin-top:0;padding:4px 10px;font-size:12.5px;border-radius:14px;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);box-shadow:none;
+  }
+  .nick-form{display:flex;gap:7px;align-items:center;justify-content:center;width:100%}
+  #menuNickInput{
+    flex:1;min-width:0;padding:9px 14px;border-radius:24px;border:1.5px solid rgba(255,210,74,.65);
+    background:rgba(12,16,30,.94);color:#fff;font:700 14.5px "Sarabun",Tahoma,sans-serif;
+    outline:none;user-select:text;-webkit-user-select:text;touch-action:auto;
+    box-shadow:0 4px 14px rgba(0,0,0,.55);
+  }
+  #menuNickInput:focus{border-color:#ffd24a;box-shadow:0 0 14px rgba(255,210,74,.4)}
+  #menuNickInput.need-nick{border-color:#ff4b6e;animation:nickShake .32s ease}
+  @keyframes nickShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .nick-save-btn{
+    margin-top:0;padding:9px 15px;font-size:14px;border-radius:24px;
+    background:linear-gradient(135deg,#22c55e,#15803d);box-shadow:0 4px 14px rgba(34,197,94,.4);
+    white-space:nowrap;
+  }
+  .nick-hint{font-size:12.5px;font-weight:700;min-height:17px;color:#9ef5c0;text-shadow:0 1px 4px #000}
+  .nick-hint.warn{color:#ffb4bf}
+  #lbAutoStatus{
+    margin-top:12px;padding:7px 14px;border-radius:14px;
+    background:rgba(15,23,42,.78);border:1px solid rgba(255,255,255,.18);
+    font-size:13.5px;font-weight:700;color:#9ef5c0;text-shadow:0 1px 4px #000;
+  }
+  #lbAutoStatus.err{color:#ff9aa6;border-color:rgba(255,100,120,.4)}
 
   /* ---------- Global Leaderboard Modal ---------- */
   #lbModal{
@@ -403,6 +429,17 @@
   </div>
   <div class="menu-bottom">
     <div class="vow-bubble">🙏 "สาธุ... เจ้าพ่อตาล ถ้าลูกช้างได้ของที่ขอไว้ จะเอาพวงมาลัยมาแก้บนนะ!" <b>(พอได้ปุ๊บ ชิ่งหนีเลย)</b></div>
+    <div id="menuNickBox">
+      <div id="menuNickSaved" class="nick-saved" style="display:none">
+        <span>👤 ผู้แก้บน: <b id="menuNickDisplay"></b></span>
+        <button id="menuNickEditBtn" type="button" class="nick-edit-btn">✏️ เปลี่ยนชื่อ</button>
+      </div>
+      <div id="menuNickForm" class="nick-form">
+        <input id="menuNickInput" type="text" maxlength="16" placeholder="ใส่ชื่อเล่นก่อนวิ่ง (ใช้ชื่อเดิมได้ทุกเครื่อง)..." autocomplete="nickname">
+        <button id="menuNickSaveBtn" type="button" class="nick-save-btn">✓ ใช้ชื่อนี้</button>
+      </div>
+      <div id="menuNickHint" class="nick-hint"></div>
+    </div>
     <button id="startBtn">แตะเพื่อวิ่งหนี!</button>
     <button id="menuLbBtn" type="button" class="btn-sec btn-lb">🏆 อันดับโลก (Top 10)</button>
     <div class="keys">← → เปลี่ยนเลน / เลี้ยวแยก · ↑ กระโดด · ↓ สไลด์</div>
@@ -427,13 +464,7 @@
     <div class="final">ระยะทาง <b id="fScore">0</b> เมตร · พวงมาลัย <b id="fOffer">0</b></div>
     <div class="final best-stat">🏆 สถิติสูงสุด <span id="fBest">0</span> เมตร</div>
     <p class="over-vow-quote">"บนเเล้วต้องเเก้นะครับ.... 🙏👻"</p>
-    <div id="lbSubmitWrap">
-      <div class="lb-submit-row">
-        <input id="lbNickInput" type="text" maxlength="16" placeholder="ใส่ชื่อเล่นส่งอันดับ..." autocomplete="nickname">
-        <button id="lbSubmitBtn" type="button">🚀 ส่งคะแนน</button>
-      </div>
-      <div id="lbSubmitMsg"></div>
-    </div>
+    <div id="lbAutoStatus"></div>
     <div class="pause-btns" id="overBtns">
       <button id="retryBtn" type="button">🔄 แก้บนใหม่</button>
       <button id="overLbBtn" type="button" class="btn-sec btn-lb">🏆 อันดับโลก</button>

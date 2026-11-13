@@ -917,8 +917,10 @@ const ui = {
   menuLbBtn: $('menuLbBtn'), overLbBtn: $('overLbBtn'),
   lbModal: $('lbModal'), lbCloseBtn: $('lbCloseBtn'), lbRefreshBtn: $('lbRefreshBtn'),
   lbStatus: $('lbStatus'), lbList: $('lbList'), lbMyRank: $('lbMyRank'),
-  lbSubmitWrap: $('lbSubmitWrap'), lbNickInput: $('lbNickInput'),
-  lbSubmitBtn: $('lbSubmitBtn'), lbSubmitMsg: $('lbSubmitMsg'),
+  menuNickBox: $('menuNickBox'), menuNickSaved: $('menuNickSaved'), menuNickDisplay: $('menuNickDisplay'),
+  menuNickEditBtn: $('menuNickEditBtn'), menuNickForm: $('menuNickForm'),
+  menuNickInput: $('menuNickInput'), menuNickSaveBtn: $('menuNickSaveBtn'), menuNickHint: $('menuNickHint'),
+  lbAutoStatus: $('lbAutoStatus'),
 };
 
 // ============================================================ collectibles (🪽 กระด้ง & 🧵 สายสิญจน์มงคล & 🥤 น้ำแดง)
@@ -1350,7 +1352,62 @@ let state = 'menu', paused = false;
 let speed = 16, speedMul = 1, dist = 0, offerCount = 0, tPlay = 0, gap = GHOST_START_GAP, gz = GHOST_START_GAP, gx = 0;
 let lane = 1, px = 0, py = 0, vy = 0, slideT = 0, invuln = 0, stumble = 0, shake = 0, runPhase = 0, landingGrace = 0;
 let hbTimer = 0, deadT = 0, clock = 0;
-let best = +(localStorage.getItem('tanGhostBest') || 0);
+const NICK_STORAGE_KEY = 'tanNickname';
+const BEST_MAP_STORAGE_KEY = 'tanBestByNick';
+const LEGACY_BEST_KEY = 'tanGhostBest';
+
+function normalizeNickKey(raw) {
+  return String(raw || '').trim().toLowerCase();
+}
+
+function sanitizeNickname(raw) {
+  return String(raw || '')
+    .replace(/[\r\n\t\x00-\x1f\x7f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b(fuck|shit|bitch|asshole|cunt|dick)\b|เหี้ย|สัส|ควย|เย็ด|หี|แตด/gi, '***')
+    .slice(0, 16)
+    .trim();
+}
+
+function cleanNickname(raw) {
+  return sanitizeNickname(raw) || 'ผู้แก้บนนิรนาม';
+}
+
+function getActiveNickname() {
+  return sanitizeNickname(localStorage.getItem(NICK_STORAGE_KEY) || '');
+}
+
+function loadBestMap() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(BEST_MAP_STORAGE_KEY) || '{}');
+    return (parsed && typeof parsed === 'object') ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function loadNickBest(nick) {
+  const key = normalizeNickKey(nick);
+  if (!key) return +(localStorage.getItem(LEGACY_BEST_KEY) || 0);
+  const map = loadBestMap();
+  if (map[key] !== undefined) return Number(map[key]) || 0;
+  return Object.keys(map).length === 0 ? +(localStorage.getItem(LEGACY_BEST_KEY) || 0) : 0;
+}
+
+function saveBestForActiveNick(val) {
+  const n = Math.max(0, Math.floor(Number(val) || 0));
+  const key = normalizeNickKey(getActiveNickname());
+  if (key) {
+    const map = loadBestMap();
+    map[key] = Math.max(Number(map[key]) || 0, n);
+    localStorage.setItem(BEST_MAP_STORAGE_KEY, JSON.stringify(map));
+  }
+  const legacy = +(localStorage.getItem(LEGACY_BEST_KEY) || 0);
+  if (n > legacy) localStorage.setItem(LEGACY_BEST_KEY, n);
+}
+
+let best = loadNickBest(getActiveNickname());
 
 // ============================================================ crossroads fork & biome transitions
 let sinceFork = 0, nextForkDist = 115 + Math.random() * 45;
@@ -1710,8 +1767,13 @@ function goToMenu() {
   ui.pip.style.display = 'none';
   ui.hint.style.display = 'none';
   ui.menu.style.display = 'flex';
+  syncMenuNickUI(false);
 }
-window.triggerStart = start;
+window.triggerStart = () => {
+  if (!getActiveNickname()) localStorage.setItem(NICK_STORAGE_KEY, 'ผู้ทดสอบ');
+  best = loadNickBest(getActiveNickname());
+  start();
+};
 window.triggerDie = die;
 window.triggerSpawnGhost = (l, z) => spawnObstacle(l, 'ghost', z);
 window.triggerSpawnKrahang = (l, z) => spawnKrahangItem(l, z);
@@ -1738,28 +1800,110 @@ let deathTimer = null;
 let lastRunDist = 0;
 let lastRunOffers = 0;
 
-// ============================================================ Global Leaderboard (Supabase REST + RPC)
-function getClientId() {
-  let id = localStorage.getItem('tanClientId');
-  if (!id || id.length < 6) {
-    const rand = (window.crypto && crypto.randomUUID)
-      ? crypto.randomUUID()
-      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-    id = `tan-${rand}`.slice(0, 48);
-    localStorage.setItem('tanClientId', id);
-  }
-  return id;
+// ============================================================ Global Leaderboard & Player Profile (Supabase REST + RPC)
+function setMenuHint(text, color = '') {
+  if (!ui.menuNickHint) return;
+  ui.menuNickHint.textContent = text;
+  ui.menuNickHint.style.color = color;
 }
 
-function cleanNickname(raw) {
-  const cleaned = String(raw || '')
-    .replace(/[\r\n\t\x00-\x1f\x7f]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\b(fuck|shit|bitch|asshole|cunt|dick)\b|เหี้ย|สัส|ควย|เย็ด|หี|แตด/gi, '***')
-    .slice(0, 16)
-    .trim();
-  return cleaned || 'ผู้แก้บนนิรนาม';
+function setMenuNickMode(editing, prefill = '') {
+  const saved = getActiveNickname();
+  const showForm = editing || !saved;
+  if (ui.menuNickSaved) ui.menuNickSaved.style.display = showForm ? 'none' : 'flex';
+  if (ui.menuNickForm) ui.menuNickForm.style.display = showForm ? 'flex' : 'none';
+  if (ui.menuNickDisplay && saved) ui.menuNickDisplay.textContent = saved;
+  if (ui.menuNickInput && showForm) {
+    ui.menuNickInput.value = prefill || saved || '';
+    if (editing) {
+      ui.menuNickInput.focus();
+      ui.menuNickInput.select();
+    }
+  }
+}
+
+async function syncNickFromServer(nick) {
+  const clean = sanitizeNickname(nick);
+  if (!clean) return;
+  const reqKey = normalizeNickKey(clean);
+  if (ui.hudBest) ui.hudBest.textContent = best;
+  if (!getLbConfig().ready) {
+    setMenuHint(`✅ จำชื่อ "${clean}" บนเครื่องนี้แล้ว · สถิติบนเครื่อง ${best} ม.`, '#cfe8ff');
+    return;
+  }
+  setMenuHint(`⏳ กำลังเช็กสถิติเดิมของ "${clean}"...`, '#ffe8a3');
+  try {
+    const res = await sbFetch('/rest/v1/rpc/get_player_rank', {
+      method: 'POST',
+      body: JSON.stringify({ p_nickname: clean }),
+    });
+    if (normalizeNickKey(getActiveNickname()) !== reqKey) return;
+    if (res && res.found) {
+      const remoteDist = Math.max(0, Math.floor(Number(res.distance) || 0));
+      if (remoteDist > best) {
+        best = remoteDist;
+        saveBestForActiveNick(best);
+      }
+      if (ui.hudBest) ui.hudBest.textContent = best;
+      const shownNick = cleanNickname(res.nickname || clean);
+      setMenuHint(`🟢 พบสถิติเดิม "${shownNick}" · อันดับ #${res.rank} (สูงสุด ${Math.max(best, remoteDist)} ม.)`, '#9effc3');
+    } else {
+      setMenuHint(`✨ พร้อมวิ่งในนาม "${clean}" · เล่นจบระบบบันทึกอัตโนมัติ`, '#cfe8ff');
+    }
+  } catch (_) {
+    if (normalizeNickKey(getActiveNickname()) !== reqKey) return;
+    setMenuHint(`✅ จำชื่อ "${clean}" บนเครื่องนี้แล้ว (ซิงก์ออนไลน์ชั่วคราวไม่สำเร็จ)`, '#ffe8a3');
+  }
+}
+
+function syncMenuNickUI(editing = false) {
+  const saved = getActiveNickname();
+  best = loadNickBest(saved);
+  if (ui.hudBest) ui.hudBest.textContent = best;
+  setMenuNickMode(editing);
+  if (!saved) {
+    setMenuHint('💡 ตั้งชื่อครั้งเดียว เครื่องนี้จะจำให้ตลอด และใช้ชื่อเดิมเล่นต่อข้ามเครื่องได้ครับ');
+  } else if (!editing) {
+    setMenuHint(`✅ จำชื่อ "${saved}" ไว้แล้ว · สถิติสูงสุด ${best} ม.`, '#9effc3');
+  }
+}
+
+function saveNicknameFromInput(shouldSync = true) {
+  const nick = sanitizeNickname(ui.menuNickInput ? ui.menuNickInput.value : '');
+  if (!nick) {
+    setMenuNickMode(true, '');
+    setMenuHint('⚠️ กรุณาใส่ชื่อเล่นก่อนเริ่มวิ่ง (เช่น ตาล หรือ ชื่อเดิมจากอีกเครื่อง)', '#ff9ea9');
+    if (ui.menuNickInput) ui.menuNickInput.focus();
+    return '';
+  }
+  localStorage.setItem(NICK_STORAGE_KEY, nick);
+  const loadedBest = loadNickBest(nick);
+  const map = loadBestMap();
+  const key = normalizeNickKey(nick);
+  if (map[key] === undefined) {
+    map[key] = loadedBest;
+    localStorage.setItem(BEST_MAP_STORAGE_KEY, JSON.stringify(map));
+  }
+  best = loadedBest;
+  if (ui.hudBest) ui.hudBest.textContent = best;
+  setMenuNickMode(false);
+  if (shouldSync) syncNickFromServer(nick);
+  else setMenuHint(`✅ จำชื่อ "${nick}" ไว้แล้ว · เล่นจบระบบจะบันทึกให้ทันที`, '#9effc3');
+  return nick;
+}
+
+function tryStartFromMenu() {
+  if (state !== 'menu') {
+    start();
+    return;
+  }
+  const formOpen = ui.menuNickForm && ui.menuNickForm.style.display !== 'none';
+  let nick = getActiveNickname();
+  if (formOpen || !nick) {
+    nick = saveNicknameFromInput(false);
+    if (!nick) return;
+  }
+  start();
 }
 
 function getLbConfig() {
@@ -1799,13 +1943,14 @@ async function sbFetch(path, opts = {}) {
 
 function renderLeaderboardRows(rows, myRankData) {
   if (!ui.lbList || !ui.lbMyRank) return;
-  const myId = getClientId();
+  const activeNick = getActiveNickname();
+  const activeKey = normalizeNickKey(activeNick);
   ui.lbList.innerHTML = '';
 
   if (!rows || rows.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'lb-empty';
-    empty.textContent = 'ยังไม่มีผู้กล้าส่งสถิติบนกระดานโลก ลองวิ่งแล้วส่งชื่อคนแรกดูครับ!';
+    empty.textContent = 'ยังไม่มีผู้กล้าบันทึกสถิติบนกระดานโลก ลองวิ่งให้จบสักรอบดูครับ!';
     ui.lbList.appendChild(empty);
   } else {
     rows.forEach((row, idx) => {
@@ -1813,7 +1958,8 @@ function renderLeaderboardRows(rows, myRankData) {
       const el = document.createElement('div');
       el.className = 'lb-row';
       if (rankNum <= 3) el.classList.add(`rank-${rankNum}`);
-      if (row.client_id && row.client_id === myId) el.classList.add('me');
+      const rowKey = normalizeNickKey(row.nickname_key || sanitizeNickname(row.nickname));
+      if (activeKey && rowKey === activeKey) el.classList.add('me');
 
       const rEl = document.createElement('div');
       rEl.className = 'lb-rank';
@@ -1839,21 +1985,21 @@ function renderLeaderboardRows(rows, myRankData) {
   if (myRankData && myRankData.found) {
     const totalTxt = myRankData.total ? ` / ${myRankData.total} คน` : '';
     ui.lbMyRank.textContent = `อันดับของคุณ: #${myRankData.rank}${totalTxt} · ${cleanNickname(myRankData.nickname)} · ${myRankData.distance} ม. · 🌼 ${myRankData.garlands || 0}`;
+  } else if (activeNick) {
+    ui.lbMyRank.textContent = `อันดับของคุณ (${activeNick}): ยังไม่มีบนกระดานโลก · สถิติบนเครื่อง ${best} ม. (เล่นให้จบรอบเพื่อบันทึกอัตโนมัติ)`;
   } else {
-    const savedNick = localStorage.getItem('tanNickname');
-    const namePart = savedNick ? `${cleanNickname(savedNick)} · ` : '';
-    ui.lbMyRank.textContent = `อันดับของคุณ: ยังไม่เคยส่งขึ้นโลก · ${namePart}สถิติบนเครื่อง ${best} ม.`;
+    ui.lbMyRank.textContent = 'กรุณาใส่ชื่อเล่นที่หน้าหลัก เพื่อบันทึกสถิติอัตโนมัติและเล่นต่อข้ามเครื่อง';
   }
 }
 
 async function refreshLeaderboard() {
   if (!ui.lbStatus || !ui.lbList) return;
   const cfg = getLbConfig();
+  const activeNick = getActiveNickname();
   if (!cfg.ready) {
     ui.lbStatus.textContent = '⚠️ ยังไม่ได้เชื่อมต่อ Supabase (ตั้งค่า URL/Key ใน leaderboard-config.js)';
     const localRows = best > 0 ? [{
-      client_id: getClientId(),
-      nickname: localStorage.getItem('tanNickname') || 'สถิติบนเครื่องคุณ',
+      nickname: activeNick || 'สถิติบนเครื่องคุณ',
       distance: best,
       garlands: lastRunOffers || 0,
     }] : [];
@@ -1863,12 +2009,11 @@ async function refreshLeaderboard() {
 
   ui.lbStatus.textContent = '⏳ กำลังโหลดอันดับโลก...';
   try {
-    const myId = getClientId();
     const [topRows, myRank] = await Promise.all([
-      sbFetch(`/rest/v1/${encodeURIComponent(cfg.table)}?select=client_id,nickname,distance,garlands,updated_at&order=distance.desc,garlands.desc,updated_at.asc&limit=10`),
+      sbFetch(`/rest/v1/${encodeURIComponent(cfg.table)}?select=nickname,distance,garlands,updated_at&order=distance.desc,garlands.desc,updated_at.asc&limit=10`),
       sbFetch('/rest/v1/rpc/get_player_rank', {
         method: 'POST',
-        body: JSON.stringify({ p_client_id: myId }),
+        body: JSON.stringify({ p_nickname: activeNick || '' }),
       }).catch(() => null),
     ]);
     const totalTxt = (myRank && myRank.total) ? ` · ผู้เล่นทั้งหมด ${myRank.total} คน` : '';
@@ -1890,44 +2035,51 @@ function closeLeaderboard() {
   ui.lbModal.style.display = 'none';
 }
 
-async function submitCurrentScore() {
-  if (!ui.lbNickInput || !ui.lbSubmitBtn || !ui.lbSubmitMsg) return;
-  const nick = cleanNickname(ui.lbNickInput.value);
-  ui.lbNickInput.value = nick;
-  localStorage.setItem('tanNickname', nick);
-
-  const scoreDist = Math.max(best, lastRunDist);
-  const scoreGar = lastRunDist >= best ? lastRunOffers : 0;
-
-  const cfg = getLbConfig();
-  if (!cfg.ready) {
-    ui.lbSubmitMsg.className = 'err';
-    ui.lbSubmitMsg.textContent = 'บันทึกชื่อเล่นแล้ว (ใส่ Supabase URL/Key ใน leaderboard-config.js เพื่อส่งขึ้นโลก)';
+async function autoSubmitScore(runDist, runGarlands) {
+  if (!ui.lbAutoStatus) return;
+  const nick = getActiveNickname();
+  if (!nick) {
+    ui.lbAutoStatus.style.color = '#ff9ea9';
+    ui.lbAutoStatus.textContent = '⚠️ ยังไม่ตั้งชื่อเล่น — กลับหน้าหลักเพื่อตั้งชื่อบันทึกสถิติ';
     return;
   }
 
-  ui.lbSubmitBtn.disabled = true;
-  ui.lbSubmitMsg.className = '';
-  ui.lbSubmitMsg.textContent = '⏳ กำลังส่งคะแนนขึ้นศาลโลก...';
+  const cfg = getLbConfig();
+  if (!cfg.ready) {
+    ui.lbAutoStatus.style.color = '#ffe8a3';
+    ui.lbAutoStatus.textContent = `💾 บันทึกสถิติของ "${nick}" บนเครื่องแล้ว (${Math.max(best, runDist)} ม.)`;
+    return;
+  }
+
+  ui.lbAutoStatus.style.color = '#ffe8a3';
+  ui.lbAutoStatus.textContent = `⏳ กำลังบันทึกคะแนนให้ "${nick}" อัตโนมัติ...`;
   try {
     const res = await sbFetch('/rest/v1/rpc/submit_score', {
       method: 'POST',
       body: JSON.stringify({
-        p_client_id: getClientId(),
         p_nickname: nick,
-        p_distance: Math.floor(scoreDist),
-        p_garlands: Math.floor(scoreGar),
+        p_distance: Math.floor(runDist),
+        p_garlands: Math.floor(runGarlands),
       }),
     });
-    const rankTxt = res && res.rank ? `#${res.rank}` : '-';
-    const bestTxt = res && res.distance !== undefined ? res.distance : scoreDist;
-    ui.lbSubmitMsg.className = '';
-    ui.lbSubmitMsg.textContent = `✅ ส่งสำเร็จ! อันดับโลกของคุณ: ${rankTxt} (สถิติ ${bestTxt} ม.)`;
-    ui.lbSubmitBtn.disabled = false;
+    const serverBest = (res && res.distance !== undefined) ? Number(res.distance) : Math.max(best, runDist);
+    if (serverBest > best) {
+      best = serverBest;
+      saveBestForActiveNick(best);
+      if (ui.fBest) ui.fBest.textContent = best;
+    }
+    const rankTxt = (res && res.rank) ? `#${res.rank}` : '-';
+    const totalTxt = (res && res.total) ? ` / ${res.total} คน` : '';
+    if (res && res.is_new_best) {
+      ui.lbAutoStatus.style.color = '#9effc3';
+      ui.lbAutoStatus.textContent = `🎉 สถิติใหม่! บันทึกให้ "${nick}" แล้ว · อันดับโลก ${rankTxt}${totalTxt} (${serverBest} ม.)`;
+    } else {
+      ui.lbAutoStatus.style.color = '#cfe8ff';
+      ui.lbAutoStatus.textContent = `✅ บันทึกอัตโนมัติให้ "${nick}" แล้ว · อันดับโลก ${rankTxt}${totalTxt} (สูงสุด ${serverBest} ม.)`;
+    }
   } catch (err) {
-    ui.lbSubmitMsg.className = 'err';
-    ui.lbSubmitMsg.textContent = `❌ ส่งไม่สำเร็จ (${err.message || 'กรุณาลองใหม่'})`;
-    ui.lbSubmitBtn.disabled = false;
+    ui.lbAutoStatus.style.color = '#ff9ea9';
+    ui.lbAutoStatus.textContent = `⚠️ บันทึกขึ้นโลกไม่สำเร็จ (${err.message || 'เครือข่ายขัดข้อง'}) · เก็บบนเครื่องไว้แล้ว`;
   }
 }
 
@@ -1948,15 +2100,14 @@ function die() {
   const m = Math.floor(dist);
   lastRunDist = m;
   lastRunOffers = offerCount;
-  if (m > best) { best = m; localStorage.setItem('tanGhostBest', best); }
+  if (m > best) { best = m; }
+  saveBestForActiveNick(best);
   ui.fScore.textContent = m; ui.fOffer.textContent = offerCount; ui.fBest.textContent = best;
-  if (ui.lbNickInput) ui.lbNickInput.value = localStorage.getItem('tanNickname') || '';
-  if (ui.lbSubmitMsg) { ui.lbSubmitMsg.className = ''; ui.lbSubmitMsg.textContent = ''; }
-  if (ui.lbSubmitBtn) ui.lbSubmitBtn.disabled = false;
   ui.hint.style.display = 'none';
   ui.pip.style.display = 'none';
   ui.hud.style.display = 'none';
   shake = 2.4;
+  autoSubmitScore(m, offerCount);
   // Show Tan's face full screen first!
   ui.over.style.display = 'flex';
   ui.over.classList.remove('ready');
@@ -2005,9 +2156,9 @@ function slide() {
 window.addEventListener('keydown', (e) => {
   const activeTag = document.activeElement && document.activeElement.tagName;
   if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') {
-    if (e.key === 'Enter' && document.activeElement === ui.lbNickInput) {
+    if (e.key === 'Enter' && document.activeElement === ui.menuNickInput) {
       e.preventDefault();
-      submitCurrentScore();
+      saveNicknameFromInput(true);
     }
     return;
   }
@@ -2024,7 +2175,10 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'arrowup' || k === 'w' || k === ' ') jump();
   else if (k === 'arrowdown' || k === 's') slide();
   else if (k === 'f') activateKrahangFlight();
-  else if (k === 'enter' && state !== 'play' && (state === 'menu' || (ui.over.style.display === 'flex' && ui.over.classList.contains('ready')))) start();
+  else if (k === 'enter' && state !== 'play') {
+    if (state === 'menu') tryStartFromMenu();
+    else if (ui.over.style.display === 'flex' && ui.over.classList.contains('ready')) start();
+  }
 });
 window.activateKrahangFlight = activateKrahangFlight;
 window.activateSaiSinShield = activateSaiSinShield;
@@ -2070,8 +2224,7 @@ canvas.addEventListener('touchend', (e) => {
 }, { passive: false });
 canvas.addEventListener('mousedown', (e) => swipeStart(e.clientX, e.clientY));
 window.addEventListener('mouseup', (e) => swipeEnd(e.clientX, e.clientY));
-$('startBtn').addEventListener('click', (e) => { e.stopPropagation(); start(); });
-ui.menu.addEventListener('click', () => { if (state === 'menu') start(); });
+$('startBtn').addEventListener('click', (e) => { e.stopPropagation(); tryStartFromMenu(); });
 ui.over.addEventListener('click', (e) => {
   if (ui.over.classList.contains('scaring') && deadT > 0.6) {
     showDeathButtons();
@@ -2079,6 +2232,13 @@ ui.over.addEventListener('click', (e) => {
 });
 $('retryBtn').addEventListener('click', (e) => { e.stopPropagation(); start(); });
 $('menuBtn').addEventListener('click', (e) => { e.stopPropagation(); goToMenu(); });
+if (ui.menuNickSaveBtn) ui.menuNickSaveBtn.addEventListener('click', (e) => { e.stopPropagation(); saveNicknameFromInput(true); });
+if (ui.menuNickEditBtn) ui.menuNickEditBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  setMenuNickMode(true);
+  setMenuHint('✏️ พิมพ์ชื่อเดิมจากอีกเครื่อง หรือเปลี่ยนชื่อใหม่ได้เลยครับ', '#cfe8ff');
+});
+if (ui.menuNickInput) ui.menuNickInput.addEventListener('click', (e) => e.stopPropagation());
 if (ui.menuLbBtn) ui.menuLbBtn.addEventListener('click', (e) => { e.stopPropagation(); openLeaderboard(); });
 if (ui.overLbBtn) ui.overLbBtn.addEventListener('click', (e) => { e.stopPropagation(); openLeaderboard(); });
 if (ui.lbCloseBtn) ui.lbCloseBtn.addEventListener('click', (e) => { e.stopPropagation(); closeLeaderboard(); });
@@ -2089,8 +2249,8 @@ if (ui.lbModal) {
     if (e.target === ui.lbModal) closeLeaderboard();
   });
 }
-if (ui.lbNickInput) ui.lbNickInput.addEventListener('click', (e) => e.stopPropagation());
-if (ui.lbSubmitBtn) ui.lbSubmitBtn.addEventListener('click', (e) => { e.stopPropagation(); submitCurrentScore(); });
+syncMenuNickUI(false);
+if (getActiveNickname()) syncNickFromServer(getActiveNickname());
 ui.pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePause(); });
 ui.pauseBtn.addEventListener('touchstart', (e) => { e.stopPropagation(); }, { passive: true });
 $('resumeBtn').addEventListener('click', (e) => { e.stopPropagation(); togglePause(false); });
@@ -2632,7 +2792,7 @@ function update(dt) {
   if (state === 'play') {
     const curM = Math.floor(dist);
     ui.score.textContent = curM;
-    if (curM > best) { best = curM; localStorage.setItem('tanGhostBest', best); }
+    if (curM > best) { best = curM; saveBestForActiveNick(best); }
     if (ui.hudBest) ui.hudBest.textContent = best;
     ui.offerN.textContent = offerCount;
     const r = Math.max(0, Math.min(1, (gap - CATCH_GAP) / (GHOST_MAX_GAP - CATCH_GAP)));
