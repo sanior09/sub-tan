@@ -1950,7 +1950,7 @@ function renderLeaderboardRows(rows, myRankData) {
   if (!rows || rows.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'lb-empty';
-    empty.textContent = 'ยังไม่มีผู้กล้าบันทึกสถิติบนกระดานโลก ลองวิ่งให้จบสักรอบดูครับ!';
+    empty.textContent = 'ยังไม่มีใครบันทึกสถิติเลย ลองวิ่งให้จบสักรอบดูครับ!';
     ui.lbList.appendChild(empty);
   } else {
     rows.forEach((row, idx) => {
@@ -1986,7 +1986,7 @@ function renderLeaderboardRows(rows, myRankData) {
     const totalTxt = myRankData.total ? ` / ${myRankData.total} คน` : '';
     ui.lbMyRank.textContent = `อันดับของคุณ: #${myRankData.rank}${totalTxt} · ${cleanNickname(myRankData.nickname)} · ${myRankData.distance} ม. · 🌼 ${myRankData.garlands || 0}`;
   } else if (activeNick) {
-    ui.lbMyRank.textContent = `อันดับของคุณ (${activeNick}): ยังไม่มีบนกระดานโลก · สถิติบนเครื่อง ${best} ม. (เล่นให้จบรอบเพื่อบันทึกอัตโนมัติ)`;
+    ui.lbMyRank.textContent = `อันดับของคุณ (${activeNick}): ยังไม่มีสถิติออนไลน์ · บนเครื่อง ${best} ม. (เล่นให้จบรอบเพื่อบันทึกอัตโนมัติ)`;
   } else {
     ui.lbMyRank.textContent = 'กรุณาใส่ชื่อเล่นที่หน้าหลัก เพื่อบันทึกสถิติอัตโนมัติและเล่นต่อข้ามเครื่อง';
   }
@@ -2007,7 +2007,7 @@ async function refreshLeaderboard() {
     return;
   }
 
-  ui.lbStatus.textContent = '⏳ กำลังโหลดอันดับโลก...';
+  ui.lbStatus.textContent = '⏳ กำลังโหลดอันดับ...';
   try {
     const [topRows, myRank] = await Promise.all([
       sbFetch(`/rest/v1/${encodeURIComponent(cfg.table)}?select=nickname,distance,garlands,updated_at&order=distance.desc,garlands.desc,updated_at.asc&limit=10`),
@@ -2072,14 +2072,14 @@ async function autoSubmitScore(runDist, runGarlands) {
     const totalTxt = (res && res.total) ? ` / ${res.total} คน` : '';
     if (res && res.is_new_best) {
       ui.lbAutoStatus.style.color = '#9effc3';
-      ui.lbAutoStatus.textContent = `🎉 สถิติใหม่! บันทึกให้ "${nick}" แล้ว · อันดับโลก ${rankTxt}${totalTxt} (${serverBest} ม.)`;
+      ui.lbAutoStatus.textContent = `🎉 สถิติใหม่! บันทึกให้ "${nick}" แล้ว · อันดับ ${rankTxt}${totalTxt} (${serverBest} ม.)`;
     } else {
       ui.lbAutoStatus.style.color = '#cfe8ff';
-      ui.lbAutoStatus.textContent = `✅ บันทึกอัตโนมัติให้ "${nick}" แล้ว · อันดับโลก ${rankTxt}${totalTxt} (สูงสุด ${serverBest} ม.)`;
+      ui.lbAutoStatus.textContent = `✅ บันทึกอัตโนมัติให้ "${nick}" แล้ว · อันดับ ${rankTxt}${totalTxt} (สูงสุด ${serverBest} ม.)`;
     }
   } catch (err) {
     ui.lbAutoStatus.style.color = '#ff9ea9';
-    ui.lbAutoStatus.textContent = `⚠️ บันทึกขึ้นโลกไม่สำเร็จ (${err.message || 'เครือข่ายขัดข้อง'}) · เก็บบนเครื่องไว้แล้ว`;
+    ui.lbAutoStatus.textContent = `⚠️ บันทึกออนไลน์ไม่สำเร็จ (${err.message || 'เครือข่ายขัดข้อง'}) · เก็บบนเครื่องไว้แล้ว`;
   }
 }
 
