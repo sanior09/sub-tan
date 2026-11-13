@@ -3,7 +3,7 @@
 // 2. นำคำสั่ง SQL จากไฟล์ supabase-setup.sql ไปรันในเมนู SQL Editor ของ Supabase
 // 3. คัดลอก Project URL และ anon public key (Project Settings -> API) มาวางด้านล่างนี้
 window.SUBTAN_LB_CONFIG = {
-  supabaseUrl: '',
-  supabaseAnonKey: '',
+  supabaseUrl: 'https://amrpcummjsyiguiwyrhv.supabase.co',
+  supabaseAnonKey: 'sb_publishable_2nDjfikG7FPvJFmCmHjRXQ_TSYOKUly',
   table: 'leaderboard',
 };

@@ -1773,14 +1773,17 @@ function getLbConfig() {
 async function sbFetch(path, opts = {}) {
   const cfg = getLbConfig();
   if (!cfg.ready) throw new Error('SUPABASE_NOT_CONFIGURED');
+  const headers = {
+    apikey: cfg.key,
+    'Content-Type': 'application/json',
+    ...(opts.headers || {}),
+  };
+  if (cfg.key.startsWith('eyJ')) {
+    headers.Authorization = `Bearer ${cfg.key}`;
+  }
   const res = await fetch(`${cfg.url}${path}`, {
     ...opts,
-    headers: {
-      apikey: cfg.key,
-      Authorization: `Bearer ${cfg.key}`,
-      'Content-Type': 'application/json',
-      ...(opts.headers || {}),
-    },
+    headers,
   });
   const txt = await res.text();
   let data = null;
