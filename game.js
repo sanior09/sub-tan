@@ -32,7 +32,8 @@ scene.fog = new THREE.Fog(FOG_COLOR, 22, 90);
 const mainCam = new THREE.PerspectiveCamera(62, 1, 0.1, 200);
 const pipCam = new THREE.PerspectiveCamera(42, 4 / 3, 0.1, 200);
 
-scene.add(new THREE.HemisphereLight(0x7080c0, 0x20121a, 0.95));
+const hemiLight = new THREE.HemisphereLight(0x7080c0, 0x20121a, 0.95);
+scene.add(hemiLight);
 const moon = new THREE.DirectionalLight(0xa0b4ff, 0.55);
 moon.position.set(-6, 14, 8);
 scene.add(moon);
@@ -82,6 +83,15 @@ const MAT = {
   lamp: new THREE.MeshBasicMaterial({ color: 0xff4a2a }),
   garland: new THREE.MeshBasicMaterial({ color: 0xffb81f }),
   garlandB: new THREE.MeshBasicMaterial({ color: 0xff6a1a }),
+  bamboo: new THREE.MeshLambertMaterial({ color: 0x246638 }),
+  bambooLeaf: new THREE.MeshLambertMaterial({ color: 0x154724 }),
+  ghostOrb: new THREE.MeshBasicMaterial({ color: 0x34d399, fog: false }),
+  shackWall: new THREE.MeshLambertMaterial({ color: 0x3d2a22 }),
+  rust: new THREE.MeshLambertMaterial({ color: 0x542c20 }),
+  dimGlow: new THREE.MeshBasicMaterial({ color: 0xff4520 }),
+  templeWall: new THREE.MeshLambertMaterial({ color: 0xc8bfa8 }),
+  templeRoof: new THREE.MeshLambertMaterial({ color: 0x9e2a1c }),
+  whiteCloth: new THREE.MeshLambertMaterial({ color: 0xdadcd8 }),
   garlandPic: new THREE.MeshBasicMaterial({
     map: garlandTex, transparent: true, alphaTest: 0.08, side: THREE.DoubleSide, fog: false }),
   fantaPic: new THREE.MeshBasicMaterial({
@@ -139,34 +149,110 @@ ghost.group.rotation.x = -0.14;          // lunging forward
 ghostRoot.scale.setScalar(1.3);
 scene.add(ghostRoot);
 
-// ============================================================ ground
-const groundTex = (() => {
+// ============================================================ biomes & ground
+const GROUND_LEN = 190, BRANCH_LEN = 115, CELL = 8;
+
+function makeBiomeTextures(id) {
   const c = document.createElement('canvas'); c.width = 256; c.height = 256;
   const x = c.getContext('2d');
-  x.fillStyle = '#1b1a22'; x.fillRect(0, 0, 256, 256);
-  // planks
-  for (let i = 0; i < 8; i++) {
-    x.fillStyle = i % 2 ? '#201e28' : '#17161e'; x.fillRect(0, i * 32, 256, 30);
+  if (id === 'forest') {
+    x.fillStyle = '#141e14'; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 8; i++) {
+      x.fillStyle = i % 2 ? '#182617' : '#101a11'; x.fillRect(0, i * 32, 256, 30);
+    }
+    // mossy green borders & dirt path speckles
+    x.fillStyle = 'rgba(34,139,74,.28)';
+    x.fillRect(0, 0, 14, 256); x.fillRect(242, 0, 14, 256);
+    x.fillStyle = 'rgba(110,231,183,.22)';
+    x.fillRect(256 / 3 - 2, 0, 4, 256); x.fillRect(512 / 3 - 2, 0, 4, 256);
+  } else if (id === 'abandoned') {
+    x.fillStyle = '#201b1e'; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 8; i++) {
+      x.fillStyle = i % 2 ? '#272023' : '#1a1518'; x.fillRect(0, i * 32, 256, 30);
+    }
+    // dark cracks & faded hazard strips
+    x.strokeStyle = 'rgba(0,0,0,.55)'; x.lineWidth = 3;
+    x.beginPath(); x.moveTo(24, 18); x.lineTo(75, 86); x.lineTo(48, 170); x.stroke();
+    x.beginPath(); x.moveTo(210, 40); x.lineTo(175, 130); x.lineTo(222, 220); x.stroke();
+    x.fillStyle = 'rgba(248,113,113,.22)';
+    for (let i = 0; i < 4; i++) {
+      x.fillRect(256 / 3 - 2, i * 64 + 8, 4, 34);
+      x.fillRect(512 / 3 - 2, i * 64 + 8, 4, 34);
+    }
+  } else if (id === 'temple') {
+    x.fillStyle = '#251a10'; x.fillRect(0, 0, 256, 256);
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 6; col++) {
+        x.fillStyle = (row + col) % 2 ? '#2e2115' : '#21170d';
+        x.fillRect(col * 42.6 + 1, row * 32 + 1, 40.6, 30);
+      }
+    }
+    x.fillStyle = 'rgba(253,224,71,.28)';
+    x.fillRect(256 / 3 - 2, 0, 4, 256); x.fillRect(512 / 3 - 2, 0, 4, 256);
+  } else {
+    // default shrine alley
+    x.fillStyle = '#1b1a22'; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 8; i++) {
+      x.fillStyle = i % 2 ? '#201e28' : '#17161e'; x.fillRect(0, i * 32, 256, 30);
+    }
+    x.fillStyle = 'rgba(200,190,255,.22)';
+    x.fillRect(256 / 3 - 2, 0, 4, 256); x.fillRect(512 / 3 - 2, 0, 4, 256);
   }
-  // lane dividers (3 lanes over 256px)
-  x.fillStyle = 'rgba(200,190,255,.22)';
-  x.fillRect(256 / 3 - 2, 0, 4, 256); x.fillRect(512 / 3 - 2, 0, 4, 256);
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
-  return t;
-})();
-const GROUND_LEN = 190, CELL = 8;
-groundTex.repeat.set(1, GROUND_LEN / CELL);
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(LANE_W * 3, GROUND_LEN),
-  new THREE.MeshLambertMaterial({ map: groundTex }));
+
+  const roadTex = new THREE.CanvasTexture(c);
+  roadTex.wrapS = roadTex.wrapT = THREE.RepeatWrapping;
+  roadTex.anisotropy = 4;
+  roadTex.repeat.set(1, GROUND_LEN / CELL);
+
+  const branchTex = new THREE.CanvasTexture(c);
+  branchTex.wrapS = branchTex.wrapT = THREE.RepeatWrapping;
+  branchTex.anisotropy = 4;
+  branchTex.repeat.set(1, BRANCH_LEN / CELL);
+
+  return { roadTex, branchMat: new THREE.MeshLambertMaterial({ map: branchTex }) };
+}
+
+const BIOMES = {
+  shrine: {
+    id: 'shrine', name: 'ซอยศาลเจ้าพ่อ', icon: '🏮', accent: '#c4b5fd',
+    fog: 0x070914, hemiSky: 0x7080c0, hemiGnd: 0x20121a, moon: 0xa0b4ff, sideCol: 0x0b1410,
+    ...makeBiomeTextures('shrine')
+  },
+  forest: {
+    id: 'forest', name: 'ป่าช้าหลอน', icon: '🌲', accent: '#4ade80',
+    fog: 0x05140c, hemiSky: 0x4ca870, hemiGnd: 0x0e2014, moon: 0x76f5aa, sideCol: 0x06190d,
+    ...makeBiomeTextures('forest')
+  },
+  abandoned: {
+    id: 'abandoned', name: 'ซอยบ้านร้าง', icon: '🏚️', accent: '#f87171',
+    fog: 0x16090c, hemiSky: 0xb06870, hemiGnd: 0x1e0e10, moon: 0xffa090, sideCol: 0x150a0c,
+    ...makeBiomeTextures('abandoned')
+  },
+  temple: {
+    id: 'temple', name: 'ลานวัดเก่า', icon: '⛩️', accent: '#facc15',
+    fog: 0x140e04, hemiSky: 0xc89a4a, hemiGnd: 0x241808, moon: 0xffe28a, sideCol: 0x181106,
+    ...makeBiomeTextures('temple')
+  }
+};
+const BIOME_LIST = [BIOMES.shrine, BIOMES.forest, BIOMES.abandoned, BIOMES.temple];
+let currentBiome = BIOMES.shrine;
+const biomeClr = {
+  fog: new THREE.Color(),
+  hemiSky: new THREE.Color(),
+  hemiGnd: new THREE.Color(),
+  moon: new THREE.Color(),
+  sideCol: new THREE.Color(),
+};
+
+const groundMat = new THREE.MeshLambertMaterial({ map: BIOMES.shrine.roadTex });
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(LANE_W * 3, GROUND_LEN), groundMat);
 ground.rotation.x = -Math.PI / 2; ground.position.set(0, 0, -GROUND_LEN / 2 + 12);
 scene.add(ground);
-[-1, 1].forEach((s) => {
-  const side = new THREE.Mesh(new THREE.PlaneGeometry(40, GROUND_LEN),
-    new THREE.MeshLambertMaterial({ color: 0x0b1410 }));
-  side.rotation.x = -Math.PI / 2; side.position.set(s * (LANE_W * 1.5 + 20), -0.02, -GROUND_LEN / 2 + 12);
-  scene.add(side);
-});
+
+const sideGroundMat = new THREE.MeshLambertMaterial({ color: BIOMES.shrine.sideCol });
+const sideGround = new THREE.Mesh(new THREE.PlaneGeometry(240, 240), sideGroundMat);
+sideGround.rotation.x = -Math.PI / 2; sideGround.position.set(0, -0.02, -65);
+scene.add(sideGround);
 
 // ============================================================ scenery
 const SCENERY_MAT = (function () {
@@ -392,28 +478,158 @@ const shrineGroup = (function makeTanShrine() {
   scene.add(g);
   return g;
 })();
+function makeBambooClump() {
+  const g = new THREE.Group();
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 2.8), SCENERY_MAT.shadowMat);
+  sh.rotation.x = -Math.PI / 2; sh.position.y = 0.015; g.add(sh);
+  const stalks = [
+    { x: -0.35, z: 0.1, h: 5.2, rx: 0.06, rz: 0.09 },
+    { x: 0.25, z: -0.15, h: 5.8, rx: -0.05, rz: -0.07 },
+    { x: 0.0, z: 0.3, h: 4.4, rx: 0.08, rz: -0.04 },
+    { x: -0.2, z: -0.3, h: 4.9, rx: -0.04, rz: 0.06 },
+  ];
+  stalks.forEach((s) => {
+    const p = mk(GEO.cyl, MAT.bamboo, 0.08, s.h, 0.08, s.x, s.h * 0.5, s.z);
+    p.rotation.set(s.rx, 0, s.rz);
+    g.add(p);
+    const lf = mk(GEO.cone, MAT.bambooLeaf, 0.55, 1.3, 0.55, s.x - s.rz * s.h * 0.4, s.h - 0.5, s.z + s.rx * s.h * 0.4);
+    g.add(lf);
+  });
+  return g;
+}
+
+function makeTombstone() {
+  const g = new THREE.Group();
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), SCENERY_MAT.shadowMat);
+  sh.rotation.x = -Math.PI / 2; sh.position.y = 0.015; g.add(sh);
+  g.add(mk(GEO.cyl, MAT.leaf, 0.95, 0.28, 1.15, 0, 0.14, 0));
+  const post = mk(GEO.box, MAT.stone, 0.48, 1.25, 0.22, 0, 0.72, -0.15);
+  post.rotation.z = (Math.random() - 0.5) * 0.14;
+  g.add(post);
+  g.add(mk(GEO.box, MAT.whiteCloth, 0.54, 0.16, 0.26, 0, 0.86, -0.15));
+  g.add(mk(GEO.pyr, MAT.stone, 0.35, 0.45, 0.35, 0, 1.48, -0.15));
+  return g;
+}
+
+function makeGhostOrbPost() {
+  const g = new THREE.Group();
+  g.add(mk(GEO.cyl, MAT.bamboo, 0.05, 1.9, 0.05, 0, 0.95, 0));
+  const orb = mk(GEO.sph, MAT.ghostOrb, 0.22, 0.22, 0.22, 0, 2.25, 0);
+  g.add(orb);
+  const halo = new THREE.Sprite(SCENERY_MAT.candleHaloMat);
+  halo.scale.set(1.8, 1.8, 1);
+  halo.position.set(0, 2.25, 0);
+  g.add(halo);
+  return g;
+}
+
+function makeAbandonedHouse(side) {
+  const g = new THREE.Group();
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 4.6), SCENERY_MAT.shadowMat);
+  sh.rotation.x = -Math.PI / 2; sh.position.y = 0.015; g.add(sh);
+  // wooden stilts
+  [[-1.3, -1.1], [1.3, -1.1], [-1.3, 1.1], [1.3, 1.1]].forEach(([px, pz]) => {
+    g.add(mk(GEO.box, MAT.darkwood, 0.18, 1.1, 0.18, px, 0.55, pz));
+  });
+  // shack cabin tilted slightly for creepy ruined feel
+  const cabin = new THREE.Group();
+  cabin.rotation.z = (side || 1) * -0.035;
+  cabin.add(mk(GEO.box, MAT.shackWall, 3.0, 2.1, 2.6, 0, 2.05, 0));
+  // rusty corrugated tin gable roof
+  const roofL = mk(GEO.box, MAT.rust, 1.9, 0.1, 3.1, -0.78, 3.38, 0);
+  roofL.rotation.z = 0.38; cabin.add(roofL);
+  const roofR = mk(GEO.box, MAT.rust, 1.9, 0.1, 3.1, 0.78, 3.38, 0);
+  roofR.rotation.z = -0.38; cabin.add(roofR);
+  // crooked dim glowing window facing the road
+  const wx = side > 0 ? -1.52 : 1.52;
+  const win = mk(GEO.box, MAT.dimGlow, 0.08, 0.58, 0.58, wx, 2.15, 0.35);
+  win.rotation.x = 0.09;
+  cabin.add(win);
+  g.add(cabin);
+  return g;
+}
+
+function makeBrokenFence() {
+  const g = new THREE.Group();
+  [-0.9, 0, 0.9].forEach((pz, i) => {
+    const p = mk(GEO.box, MAT.darkwood, 0.14, 1.35, 0.14, 0, 0.65, pz);
+    p.rotation.z = (i % 2 ? 0.15 : -0.12);
+    g.add(p);
+  });
+  const plank = mk(GEO.box, MAT.wood, 0.08, 0.22, 2.3, 0.05, 0.9, 0);
+  plank.rotation.x = 0.18;
+  g.add(plank);
+  return g;
+}
+
+function makeRustyLamp() {
+  const g = new THREE.Group();
+  const pole = mk(GEO.cyl, MAT.rust, 0.07, 3.8, 0.07, 0, 1.9, 0);
+  pole.rotation.z = 0.08;
+  g.add(pole);
+  g.add(mk(GEO.sph, MAT.dimGlow, 0.24, 0.28, 0.24, -0.16, 3.78, 0));
+  return g;
+}
+
+function makeChedi() {
+  const g = new THREE.Group();
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 3.8), SCENERY_MAT.shadowMat);
+  sh.rotation.x = -Math.PI / 2; sh.position.y = 0.015; g.add(sh);
+  g.add(mk(GEO.box, MAT.stone, 2.5, 0.35, 2.5, 0, 0.18, 0));
+  g.add(mk(GEO.box, MAT.stone, 2.0, 0.35, 2.0, 0, 0.52, 0));
+  g.add(mk(GEO.cyl, MAT.gold, 0.85, 0.55, 0.85, 0, 0.95, 0));
+  g.add(mk(GEO.sph, MAT.gold, 0.82, 0.95, 0.82, 0, 1.62, 0));
+  g.add(mk(GEO.cone, MAT.gold, 0.42, 2.2, 0.42, 0, 3.1, 0));
+  return g;
+}
+
+function makeTemplePillar() {
+  const g = new THREE.Group();
+  g.add(mk(GEO.box, MAT.templeWall, 0.45, 2.1, 2.2, 0, 1.05, 0));
+  g.add(mk(GEO.box, MAT.templeRoof, 0.62, 0.24, 2.35, 0, 2.2, 0));
+  g.add(mk(GEO.box, MAT.templeWall, 0.65, 2.8, 0.65, 0, 1.4, -1.1));
+  g.add(mk(GEO.pyr, MAT.gold, 0.55, 0.85, 0.55, 0, 3.2, -1.1));
+  const halo = new THREE.Sprite(SCENERY_MAT.candleHaloMat);
+  halo.scale.set(1.8, 1.8, 1); halo.position.set(0, 3.3, -1.1); g.add(halo);
+  return g;
+}
+
+function makeDecorForBiome(biomeId, side, step) {
+  if (biomeId === 'forest') {
+    if (step === 0 || step === 2) return { m: makeBambooClump(), off: LANE_W * 1.5 + 2.2 + Math.random() * 2.8 };
+    if (step === 1) return { m: makeTree(side), off: LANE_W * 1.5 + 2.5 + Math.random() * 3.0 };
+    if (step === 3) return { m: makeTombstone(), off: LANE_W * 1.5 + 1.8 + Math.random() * 1.8 };
+    return { m: makeGhostOrbPost(), off: LANE_W * 1.5 + 1.3 };
+  }
+  if (biomeId === 'abandoned') {
+    if (step === 0 || step === 3) return { m: makeAbandonedHouse(side), off: LANE_W * 1.5 + 3.4 + Math.random() * 1.8 };
+    if (step === 1 || step === 2) return { m: makeBrokenFence(), off: LANE_W * 1.5 + 1.5 + Math.random() * 1.0 };
+    return { m: makeRustyLamp(), off: LANE_W * 1.5 + 1.2 };
+  }
+  if (biomeId === 'temple') {
+    if (step === 0 || step === 3) return { m: makeChedi(), off: LANE_W * 1.5 + 2.8 + Math.random() * 2.2 };
+    if (step === 1) return { m: makeTemplePillar(), off: LANE_W * 1.5 + 1.7 + Math.random() * 0.8 };
+    if (step === 2) return { m: makeTree(side), off: LANE_W * 1.5 + 2.6 + Math.random() * 2.8 };
+    return { m: makeSpiritHouse(side), off: LANE_W * 1.5 + 1.8 + Math.random() * 1.5 };
+  }
+  // default shrine
+  if (step === 0 || step === 2) return { m: makeTree(side), off: LANE_W * 1.5 + 2.4 + Math.random() * 3.2 };
+  if (step === 1 || step === 3) return { m: makeSpiritHouse(side), off: LANE_W * 1.5 + 1.8 + Math.random() * 2.2 };
+  return { m: makeLanternPost(), off: LANE_W * 1.5 + 1.2 };
+}
+
 const decor = [];
 let sinceDecor = 0;
 function spawnDecor(z) {
   [-1, 1].forEach((side) => {
-    if (Math.random() < 0.18) return;
+    if (Math.random() < 0.16) return;
     const step = (decorSeq++) % 5;
-    let m, off;
-    if (step === 0 || step === 2) {
-      m = makeTree(side);
-      off = LANE_W * 1.5 + 2.4 + Math.random() * 3.2;
-    } else if (step === 1 || step === 3) {
-      m = makeSpiritHouse(side);
-      off = LANE_W * 1.5 + 1.8 + Math.random() * 2.2;
-    } else {
-      m = makeLanternPost();
-      off = LANE_W * 1.5 + 1.2;
-    }
+    const { m, off } = makeDecorForBiome(currentBiome.id, side, step);
     m.position.set(side * off, 0, z + (Math.random() - 0.5) * 3.5);
     scene.add(m); decor.push(m);
 
-    // Occasional spooky roadside spirit watcher standing beside the shrine or tree
-    if ((step === 1 || step === 3) && Math.random() < 0.24) {
+    // Occasional spooky roadside spirit watcher
+    if ((step === 1 || step === 3) && Math.random() < 0.22) {
       const watcher = makeStandingGhost(true);
       watcher.group.position.set(side * (off + 1.05), 0, z + (Math.random() - 0.5) * 1.6);
       watcher.group.rotation.y = side > 0 ? -Math.PI / 2 - 0.25 : Math.PI / 2 + 0.25;
@@ -536,9 +752,14 @@ let sinceRow = 0, rowSpacing = 20;
 let sinceGhost = 0, nextGhostDist = 45 + Math.random() * 30;
 
 function spawnRow() {
-  if (flyT > 0 || isGlidingDown) {
-    // While soaring through the sky or descending, do not spawn ground obstacles under the player!
-    rowSpacing = speed * 1.5;
+  if (fork.active || flyT > 0 || isGlidingDown) {
+    // Do not spawn ground obstacles during flight, descent, or crossroads junctions
+    rowSpacing = speed * 1.4;
+    return;
+  }
+  if (sinceFork >= nextForkDist && dist > 65 && landingGrace <= 0) {
+    spawnFork();
+    rowSpacing = speed * 1.0;
     return;
   }
   const z = SPAWN_Z;
@@ -708,6 +929,10 @@ const sfx = {
     tone(440, 0.20, 'sine', 0.15, -160);
     setTimeout(() => tone(293.66, 0.24, 'sine', 0.12, -80), 80);
   },
+  turn: () => {
+    noise(0.18, 0.22, 950);
+    tone(360, 0.14, 'triangle', 0.18, 260);
+  },
 };
 
 // ============================================================ game state
@@ -720,6 +945,7 @@ const ui = {
   krahangBadge: $('krahangBadge'), krahangBarFill: $('krahangBarFill'), krahangTimerText: $('krahangTimerText'),
   saiSinBadge: $('saiSinBadge'), saiSinBarFill: $('saiSinBarFill'), saiSinTimerText: $('saiSinTimerText'),
   fantaBadge: $('fantaBadge'), fantaBarFill: $('fantaBarFill'), fantaTimerText: $('fantaTimerText'),
+  forkBanner: $('forkBanner'), forkLeftCard: $('forkLeftCard'), forkRightCard: $('forkRightCard'), biomeToast: $('biomeToast'),
   fScore: $('fScore'), fOffer: $('fOffer'), fBest: $('fBest'),
 };
 
@@ -1024,6 +1250,7 @@ function spawnKrahangItem(lane, z) {
 }
 
 function activateKrahangFlight() {
+  if (fork.active && fork.state === 'approaching') clearFork();
   flyT = MAX_FLY_T;
   isGlidingDown = false;
   landingGrace = 0;
@@ -1071,7 +1298,300 @@ let lane = 1, px = 0, py = 0, vy = 0, slideT = 0, invuln = 0, stumble = 0, shake
 let hbTimer = 0, deadT = 0, clock = 0;
 let best = +(localStorage.getItem('tanGhostBest') || 0);
 
+// ============================================================ crossroads fork & biome transitions
+let sinceFork = 0, nextForkDist = 115 + Math.random() * 45;
+let biomeToastTimer = null;
+
+const forkSignCanvas = document.createElement('canvas');
+forkSignCanvas.width = 256; forkSignCanvas.height = 128;
+const forkSignTex = new THREE.CanvasTexture(forkSignCanvas);
+const forkSignMat = new THREE.MeshBasicMaterial({ map: forkSignTex, fog: false, side: THREE.DoubleSide });
+
+function updateForkSignTexture(leftB, rightB) {
+  const ctx = forkSignCanvas.getContext('2d');
+  ctx.fillStyle = '#241812';
+  ctx.fillRect(0, 0, 256, 128);
+  ctx.strokeStyle = '#ffd24a';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(2, 2, 252, 124);
+
+  // Top half: Left direction
+  ctx.fillStyle = '#141928';
+  ctx.fillRect(8, 8, 240, 52);
+  ctx.strokeStyle = leftB.accent;
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(8, 8, 240, 52);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 21px Sarabun, Tahoma, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(`⬅ ${leftB.icon} ${leftB.name}`, 128, 34);
+
+  // Bottom half: Right direction
+  ctx.fillStyle = '#141928';
+  ctx.fillRect(8, 68, 240, 52);
+  ctx.strokeStyle = rightB.accent;
+  ctx.strokeRect(8, 68, 240, 52);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(`${rightB.icon} ${rightB.name} ➡`, 128, 94);
+
+  forkSignTex.needsUpdate = true;
+}
+
+const fork = {
+  active: false,
+  state: 'idle', // 'idle' | 'approaching' | 'turning'
+  z: 0,
+  leftBiome: null,
+  rightBiome: null,
+  chosenDir: 0, // -1 left, +1 right, 0 undecided
+  turnT: 0,
+  turnDur: 0.40,
+  playerX: 0,
+  playerZ: 0,
+  turnYaw: 0,
+  group: null,
+  branchProps: [],
+  branchOfferings: [],
+};
+
+function applyBiomeInstant(b) {
+  currentBiome = b;
+  scene.background.setHex(b.fog);
+  scene.fog.color.setHex(b.fog);
+  hemiLight.color.setHex(b.hemiSky);
+  hemiLight.groundColor.setHex(b.hemiGnd);
+  moon.color.setHex(b.moon);
+  sideGroundMat.color.setHex(b.sideCol);
+  groundMat.map = b.roadTex;
+  groundMat.needsUpdate = true;
+}
+
+function showBiomeToast(b) {
+  if (!ui.biomeToast) return;
+  if (biomeToastTimer) { clearTimeout(biomeToastTimer); biomeToastTimer = null; }
+  ui.biomeToast.textContent = `${b.icon} เข้าสู่โซน: ${b.name}`;
+  ui.biomeToast.style.borderColor = b.accent;
+  ui.biomeToast.style.color = b.accent;
+  ui.biomeToast.style.display = 'flex';
+  requestAnimationFrame(() => ui.biomeToast.classList.add('show'));
+  biomeToastTimer = setTimeout(() => {
+    ui.biomeToast.classList.remove('show');
+    setTimeout(() => { if (!ui.biomeToast.classList.contains('show')) ui.biomeToast.style.display = 'none'; }, 320);
+  }, 2400);
+}
+
+function clearFork() {
+  if (fork.group) { scene.remove(fork.group); fork.group = null; }
+  fork.active = false;
+  fork.state = 'idle';
+  fork.z = 0;
+  fork.chosenDir = 0;
+  fork.turnT = 0;
+  fork.turnYaw = 0;
+  fork.playerX = 0;
+  fork.playerZ = 0;
+  fork.branchProps = [];
+  fork.branchOfferings = [];
+  if (ui.forkBanner) ui.forkBanner.style.display = 'none';
+  if (ui.forkLeftCard) ui.forkLeftCard.classList.remove('selected', 'dimmed');
+  if (ui.forkRightCard) ui.forkRightCard.classList.remove('selected', 'dimmed');
+}
+
+function spawnFork() {
+  if (fork.active) return;
+  const pool = BIOME_LIST.filter((b) => b.id !== currentBiome.id);
+  const leftBiome = pool[Math.floor(Math.random() * pool.length)];
+  const pool2 = pool.filter((b) => b.id !== leftBiome.id);
+  const rightBiome = pool2[Math.floor(Math.random() * pool2.length)];
+
+  fork.active = true;
+  fork.state = 'approaching';
+  fork.z = SPAWN_Z;
+  fork.leftBiome = leftBiome;
+  fork.rightBiome = rightBiome;
+  fork.chosenDir = 0;
+  fork.turnT = 0;
+  fork.turnYaw = 0;
+  fork.playerX = 0;
+  fork.playerZ = 0;
+  fork.branchProps = [];
+  fork.branchOfferings = [];
+
+  sinceFork = 0;
+  nextForkDist = 130 + Math.random() * 50;
+
+  const g = new THREE.Group();
+  const roadW = LANE_W * 3; // 7.2
+
+  // 1. Center junction plaza tile + far ground mask behind dead-end
+  const centerTile = new THREE.Mesh(new THREE.PlaneGeometry(roadW, roadW), currentBiome.branchMat);
+  centerTile.rotation.x = -Math.PI / 2;
+  centerTile.position.set(0, 0.005, 0);
+  g.add(centerTile);
+
+  const farMask = new THREE.Mesh(new THREE.PlaneGeometry(roadW + 1.2, 160), sideGroundMat);
+  farMask.rotation.x = -Math.PI / 2;
+  farMask.position.set(0, 0.006, -(roadW * 0.5 + 80));
+  g.add(farMask);
+
+  // 2. Left (-X) and Right (+X) branch roads with distinct biome textures
+  [-1, 1].forEach((dir) => {
+    const b = dir === -1 ? leftBiome : rightBiome;
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(roadW, BRANCH_LEN), b.branchMat);
+    road.rotation.order = 'YXZ';
+    road.rotation.x = -Math.PI / 2;
+    road.rotation.y = dir === -1 ? Math.PI / 2 : -Math.PI / 2;
+    road.position.set(dir * (roadW * 0.5 + BRANCH_LEN * 0.5), 0.006, 0);
+    g.add(road);
+
+    // Populate branch roadside props from 11m to 101m along the branch
+    for (let d = 11; d <= 101; d += 9) {
+      [-1, 1].forEach((side) => {
+        if (Math.random() < 0.14) return;
+        const step = (decorSeq++) % 5;
+        const { m, off } = makeDecorForBiome(b.id, side, step);
+        m.position.set(dir * (d + (Math.random() - 0.5) * 2.5), 0, side * off);
+        m.rotation.y = dir === -1 ? Math.PI / 2 : -Math.PI / 2;
+        g.add(m);
+        fork.branchProps.push({ mesh: m, branchDir: dir });
+      });
+    }
+
+    // Reward garland strip leading down each branch
+    for (let d = 12; d <= 24; d += 3) {
+      const m = new THREE.Group();
+      m.add(new THREE.Mesh(GEO.garlandPlane, MAT.garlandPic));
+      m.position.set(dir * d, 1.0, 0);
+      m.rotation.y = Math.PI / 2;
+      g.add(m);
+      fork.branchOfferings.push({ mesh: m, branchDir: dir, got: false });
+    }
+  });
+
+  // 3. Dead-End Striped Barricade & Dual Directional Thai Signpost at z = -3.8
+  g.add(mk(GEO.box, MAT.darkwood, 0.24, 1.4, 0.24, -2.9, 0.7, -3.7));
+  g.add(mk(GEO.box, MAT.darkwood, 0.24, 1.4, 0.24,  2.9, 0.7, -3.7));
+  g.add(mk(GEO.box, MAT.stripe, 6.4, 0.65, 0.24, 0, 1.05, -3.7));
+  g.add(mk(GEO.sph, MAT.lamp, 0.22, 0.22, 0.22, -2.9, 1.52, -3.7));
+  g.add(mk(GEO.sph, MAT.lamp, 0.22, 0.22, 0.22,  2.9, 1.52, -3.7));
+
+  g.add(mk(GEO.cyl, MAT.darkwood, 0.14, 3.3, 0.14, 0, 1.65, -3.95));
+  updateForkSignTexture(leftBiome, rightBiome);
+  const signBoard = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.7), forkSignMat);
+  signBoard.position.set(0, 2.75, -3.82);
+  g.add(signBoard);
+
+  g.position.set(0, 0, fork.z);
+  scene.add(g);
+  fork.group = g;
+
+  if (ui.forkLeftCard) ui.forkLeftCard.textContent = `⬅️ ${leftBiome.icon} ${leftBiome.name}`;
+  if (ui.forkRightCard) ui.forkRightCard.textContent = `${rightBiome.icon} ${rightBiome.name} ➡️`;
+  if (ui.forkLeftCard) ui.forkLeftCard.classList.remove('selected', 'dimmed');
+  if (ui.forkRightCard) ui.forkRightCard.classList.remove('selected', 'dimmed');
+}
+
+function chooseFork(dir) {
+  if (!fork.active || fork.state !== 'approaching') return;
+  if (fork.z < -50) return;
+  fork.chosenDir = dir;
+  lane = dir < 0 ? 0 : 2;
+  sfx.coin();
+  if (ui.forkLeftCard && ui.forkRightCard) {
+    ui.forkLeftCard.classList.toggle('selected', dir < 0);
+    ui.forkLeftCard.classList.toggle('dimmed', dir > 0);
+    ui.forkRightCard.classList.toggle('selected', dir > 0);
+    ui.forkRightCard.classList.toggle('dimmed', dir < 0);
+  }
+  if (fork.z >= -6.0) {
+    beginForkTurn(dir, false);
+  }
+}
+
+function beginForkTurn(dir, crashed) {
+  if (!fork.active || fork.state !== 'approaching') return;
+  fork.state = 'turning';
+  fork.chosenDir = dir;
+  fork.turnT = 0;
+  fork.playerX = px;
+  fork.playerZ = 0;
+  const chosenBiome = dir < 0 ? fork.leftBiome : fork.rightBiome;
+  currentBiome = chosenBiome;
+  if (ui.forkBanner) ui.forkBanner.style.display = 'none';
+  if (!crashed) {
+    sfx.turn();
+    offerCount += 3;
+    ui.offerN.textContent = offerCount;
+    gap = Math.min(GHOST_MAX_GAP, gap + 0.5);
+  }
+}
+
+function finishForkTurn() {
+  if (!fork.active) return;
+  const dir = fork.chosenDir;
+  const refX = fork.playerX;
+  const g = fork.group;
+
+  // Swap road texture seamlessly
+  groundMat.map = currentBiome.roadTex;
+  groundMat.needsUpdate = true;
+  currentBiome.roadTex.offset.y = -((Math.abs(refX) - LANE_W * 1.5) / CELL);
+
+  // Clear old straight-road decor from previous biome
+  decor.forEach((m) => scene.remove(m));
+  decor.length = 0;
+
+  // Rebase props on chosen branch into -Z straight world
+  for (const bp of fork.branchProps) {
+    if (bp.branchDir !== dir) continue;
+    const rx = bp.mesh.position.x - refX;
+    const rz = bp.mesh.position.z;
+    const newZ = dir === -1 ? rx : -rx;
+    const newX = dir === -1 ? -rz : rz;
+    if (newZ > 10) continue;
+    g.remove(bp.mesh);
+    bp.mesh.position.set(newX, bp.mesh.position.y, newZ);
+    bp.mesh.rotation.y += (dir === -1 ? -Math.PI / 2 : Math.PI / 2);
+    scene.add(bp.mesh);
+    decor.push(bp.mesh);
+  }
+
+  // Rebase uncollected branch garlands into -Z offerings
+  for (const bo of fork.branchOfferings) {
+    if (bo.branchDir !== dir || bo.got) continue;
+    const rx = bo.mesh.position.x - refX;
+    const rz = bo.mesh.position.z;
+    const newZ = dir === -1 ? rx : -rx;
+    const newX = dir === -1 ? -rz : rz;
+    if (newZ > 8) continue;
+    g.remove(bo.mesh);
+    bo.mesh.position.set(newX, bo.mesh.position.y, newZ);
+    scene.add(bo.mesh);
+    offerings.push({ mesh: bo.mesh, lane: 1, got: false });
+  }
+
+  scene.remove(g);
+  fork.group = null;
+  fork.active = false;
+  fork.state = 'idle';
+  fork.turnYaw = 0;
+
+  lane = 1;
+  px = 0;
+  playerRoot.rotation.set(0, 0, 0);
+  playerRoot.position.set(0, py, 0);
+
+  sinceFork = 0;
+  sinceRow = 0;
+  rowSpacing = speed * 1.0;
+  sinceDecor = 0;
+
+  showBiomeToast(currentBiome);
+}
+
 function clearWorld() {
+  clearFork();
   [obstacles, offerings, collectibles].forEach((arr) => { arr.forEach((o) => scene.remove(o.mesh)); arr.length = 0; });
   decor.forEach((m) => scene.remove(m)); decor.length = 0;
 }
@@ -1079,6 +1599,9 @@ function seedDecor() { for (let z = 8; z > SPAWN_Z; z -= 9) spawnDecor(z); }
 
 function reset() {
   clearWorld();
+  applyBiomeInstant(BIOMES.shrine);
+  if (ui.biomeToast) { ui.biomeToast.classList.remove('show'); ui.biomeToast.style.display = 'none'; }
+  sinceFork = 0; nextForkDist = 115 + Math.random() * 45;
   speed = 16; speedMul = 1; dist = 0; offerCount = 0; tPlay = 0;
   gap = gz = GHOST_START_GAP; gx = 0;
   lane = 1; px = 0; py = 0; vy = 0; slideT = 0; invuln = 0; stumble = 0; shake = 0; landingGrace = 0;
@@ -1140,7 +1663,14 @@ window.triggerSaiSin = () => activateSaiSinShield();
 window.triggerSpawnFanta = (l, z) => spawnFantaItem(l, z);
 window.triggerFanta = () => activateFantaBoost();
 window.triggerFly = () => activateKrahangFlight();
-window.getGameState = () => ({ flyT, py, offerCount, state, gap, dist, deadT, hasSaiSin, saiSinT, hasFanta, fantaT });
+window.triggerFork = () => spawnFork();
+window.chooseFork = (d) => chooseFork(d);
+window.getGameState = () => ({
+  flyT, py, offerCount, state, gap, dist, deadT,
+  hasSaiSin, saiSinT, hasFanta, fantaT,
+  biome: currentBiome.id,
+  forkActive: fork.active, forkState: fork.state, forkZ: fork.z
+});
 let deathTimer = null;
 function showDeathButtons() {
   if (!ui.over) return;
@@ -1151,6 +1681,8 @@ function showDeathButtons() {
 function die() {
   paused = false;
   ui.pauseOverlay.style.display = 'none';
+  if (ui.forkBanner) ui.forkBanner.style.display = 'none';
+  if (ui.biomeToast) { ui.biomeToast.classList.remove('show'); ui.biomeToast.style.display = 'none'; }
   state = 'dead'; deadT = 0;
   sfx.scream();
   ui.flash.style.opacity = 1;
@@ -1172,7 +1704,31 @@ function die() {
 }
 
 // ============================================================ input
-function moveLane(d) { if (state !== 'play' || paused) return; lane = Math.max(0, Math.min(2, lane + d)); }
+function moveLane(d) {
+  if (state !== 'play' || paused) return;
+  if (fork.active && fork.state === 'turning') return;
+  if (fork.active && fork.state === 'approaching' && fork.z >= -36) {
+    chooseFork(d);
+    return;
+  }
+  lane = Math.max(0, Math.min(2, lane + d));
+}
+if (ui.forkLeftCard) {
+  ['touchstart', 'touchend', 'mousedown', 'click'].forEach((ev) => {
+    ui.forkLeftCard.addEventListener(ev, (e) => {
+      e.stopPropagation();
+      if (ev === 'touchstart' || ev === 'click') chooseFork(-1);
+    });
+  });
+}
+if (ui.forkRightCard) {
+  ['touchstart', 'touchend', 'mousedown', 'click'].forEach((ev) => {
+    ui.forkRightCard.addEventListener(ev, (e) => {
+      e.stopPropagation();
+      if (ev === 'touchstart' || ev === 'click') chooseFork(1);
+    });
+  });
+}
 function jump() {
   if (state !== 'play' || paused || flyT > 0) return;
   if (py <= 0.001) { vy = JUMP_V; slideT = 0; sfx.jump(); }
@@ -1455,102 +2011,183 @@ function update(dt) {
       gz = Math.max(gz, GHOST_MAX_GAP + 2.0);
     }
 
-    // world scroll
-    groundTex.offset.y += dz / CELL;
-    if (shrineGroup.visible) {
-      shrineGroup.position.z += dz;
-      if (shrineGroup.position.z > 14) shrineGroup.visible = false;
-    }
-    sinceDecor += dz; if (sinceDecor > 9) { sinceDecor = 0; spawnDecor(SPAWN_Z); }
-    sinceGhost += dz;
-    if (flyT <= 0 && !isGlidingDown) {
-      sinceKrahang += dz;
-      sinceSaiSin += dz;
-      sinceFanta += dz;
-    }
-    sinceRow += dz; if (sinceRow >= rowSpacing) { sinceRow = 0; spawnRow(); }
+    // smooth biome atmosphere & lighting crossfade
+    const clrStep = Math.min(1, dt * 4.5);
+    biomeClr.fog.setHex(currentBiome.fog);
+    biomeClr.hemiSky.setHex(currentBiome.hemiSky);
+    biomeClr.hemiGnd.setHex(currentBiome.hemiGnd);
+    biomeClr.moon.setHex(currentBiome.moon);
+    biomeClr.sideCol.setHex(currentBiome.sideCol);
+    scene.background.lerp(biomeClr.fog, clrStep);
+    scene.fog.color.lerp(biomeClr.fog, clrStep);
+    hemiLight.color.lerp(biomeClr.hemiSky, clrStep);
+    hemiLight.groundColor.lerp(biomeClr.hemiGnd, clrStep);
+    moon.color.lerp(biomeClr.moon, clrStep);
+    sideGroundMat.color.lerp(biomeClr.sideCol, clrStep);
 
-    // collectibles (🪽 กระด้งผีกระหัง)
-    for (let i = collectibles.length - 1; i >= 0; i--) {
-      const c = collectibles[i]; c.mesh.position.z += dz;
-      if (c.update) c.update(dt, clock);
-      const cz = c.mesh.position.z;
-      if (cz > 12) { scene.remove(c.mesh); collectibles.splice(i, 1); continue; }
-      if (!c.got && c.lane === lane && Math.abs(cz) < 1.15 && py < 2.2) {
-        c.got = true; scene.remove(c.mesh); collectibles.splice(i, 1);
-        if (c.type === 'fanta') {
-          activateFantaBoost();
-        } else if (c.type === 'saiSin') {
-          activateSaiSinShield();
-        } else {
-          activateKrahangFlight();
+    // world scroll OR 90-degree crossroads turn
+    let justFinishedTurn = false;
+    if (fork.active && fork.state === 'turning') {
+      fork.turnT += dt;
+      const u = Math.min(1, fork.turnT / fork.turnDur);
+      const ease = u * u * (3 - 2 * u);
+      const dir = fork.chosenDir;
+      fork.turnYaw = -dir * (Math.PI / 2) * ease;
+      fork.playerX += dir * dz * (0.35 + 0.65 * ease);
+      fork.playerZ += (fork.z - fork.playerZ) * Math.min(1, dt * 14);
+      for (const bo of fork.branchOfferings) {
+        if (bo.branchDir !== dir || bo.got) continue;
+        if (Math.abs(bo.mesh.position.x - fork.playerX) < 1.3 && Math.abs(bo.mesh.position.z) < 1.6) {
+          bo.got = true;
+          fork.group.remove(bo.mesh);
+          offerCount++;
+          gap = Math.min(GHOST_MAX_GAP, gap + 0.65);
+          sfx.coin();
         }
+      }
+      if (u >= 1) {
+        finishForkTurn();
+        justFinishedTurn = true;
       }
     }
 
-    // obstacles
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-      const o = obstacles[i]; o.mesh.position.z += dz;
-      if (o.update) o.update(dt, clock);
-      const oz = o.mesh.position.z;
-      if (oz > 12) { scene.remove(o.mesh); obstacles.splice(i, 1); continue; }
-      if (!o.hit && o.lane === lane && Math.abs(oz) < o.depth / 2 + 0.35 && invuln <= 0) {
-        let hit = false;
-        if (o.type === 'low') hit = py < 0.85;
-        else if (o.type === 'high') hit = slideT <= 0 && py < 2.5;
-        else if (o.type === 'ghost') hit = py < 2.3;
-        else hit = py < 2.3;
-        if (hit) {
-          if (hasFanta) {
-            ramObstacleWithFanta(o);
-          } else if (hasSaiSin) {
-            consumeSaiSinShield(o);
+    if (!(fork.active && fork.state === 'turning') && !justFinishedTurn) {
+      if (groundMat.map) groundMat.map.offset.y += dz / CELL;
+      if (shrineGroup.visible) {
+        shrineGroup.position.z += dz;
+        if (shrineGroup.position.z > 14) shrineGroup.visible = false;
+      }
+      sinceDecor += dz; if (sinceDecor > 9) { sinceDecor = 0; if (!fork.active) spawnDecor(SPAWN_Z); }
+      sinceGhost += dz;
+      if (flyT <= 0 && !isGlidingDown) {
+        sinceKrahang += dz;
+        sinceSaiSin += dz;
+        sinceFanta += dz;
+        if (!fork.active) sinceFork += dz;
+      }
+      sinceRow += dz; if (sinceRow >= rowSpacing) { sinceRow = 0; spawnRow(); }
+
+      if (fork.active && fork.state === 'approaching') {
+        fork.z += dz;
+        if (fork.group) fork.group.position.z = fork.z;
+        if (ui.forkBanner) {
+          ui.forkBanner.style.display = (fork.z >= -48 && fork.z < -0.5) ? 'flex' : 'none';
+        }
+        if (fork.z >= -2.5) {
+          if (fork.chosenDir !== 0) {
+            beginForkTurn(fork.chosenDir, false);
+          } else if (lane === 0) {
+            beginForkTurn(-1, false);
+          } else if (lane === 2) {
+            beginForkTurn(1, false);
           } else {
-            o.hit = true; invuln = 1.4; stumble = 0.95; shake = 0.85;
-            gap -= 2.8;
-          if (o.type === 'ghost') {
-            sfx.ghostScare();
-            ui.flash.style.transition = 'none'; ui.flash.style.opacity = 0.65;
-            if (o.ghostObj) {
-              o.ghostObj.human.group.position.z += 0.8;
-              o.ghostObj.human.group.scale.multiplyScalar(1.22);
+            const randDir = Math.random() < 0.5 ? -1 : 1;
+            if (hasFanta) {
+              sfx.fantaSmash();
+              shake = Math.max(shake, 0.55);
+              offerCount += 2;
+              ui.offerN.textContent = offerCount;
+              beginForkTurn(randDir, true);
+            } else if (hasSaiSin) {
+              saiSinT = 0; hasSaiSin = false; saiSinShieldGroup.visible = false;
+              if (ui.saiSinBadge) { ui.saiSinBadge.style.display = 'none'; ui.saiSinBadge.classList.remove('warning'); }
+              sfx.saiSinBreak();
+              invuln = 1.8;
+              beginForkTurn(randDir, true);
+            } else {
+              invuln = 1.4; stumble = 0.95; shake = 0.9;
+              gap -= 2.8;
+              sfx.hit();
+              ui.flash.style.transition = 'none'; ui.flash.style.opacity = 0.45;
+              requestAnimationFrame(() => { ui.flash.style.transition = 'opacity .4s'; ui.flash.style.opacity = 0; });
+              beginForkTurn(randDir, true);
             }
+          }
+        }
+      }
+
+      // collectibles (🪽 กระด้งผีกระหัง)
+      for (let i = collectibles.length - 1; i >= 0; i--) {
+        const c = collectibles[i]; c.mesh.position.z += dz;
+        if (c.update) c.update(dt, clock);
+        const cz = c.mesh.position.z;
+        if (cz > 12) { scene.remove(c.mesh); collectibles.splice(i, 1); continue; }
+        if (!c.got && c.lane === lane && Math.abs(cz) < 1.15 && py < 2.2) {
+          c.got = true; scene.remove(c.mesh); collectibles.splice(i, 1);
+          if (c.type === 'fanta') {
+            activateFantaBoost();
+          } else if (c.type === 'saiSin') {
+            activateSaiSinShield();
           } else {
-            sfx.hit();
-            ui.flash.style.transition = 'none'; ui.flash.style.opacity = 0.35;
-          }
-          requestAnimationFrame(() => { ui.flash.style.transition = 'opacity .4s'; ui.flash.style.opacity = 0; });
+            activateKrahangFlight();
           }
         }
       }
-      if (o.type === 'ghost' && !o.hit && !o.passed && oz > 1.2) {
-        o.passed = true;
-        sfx.ghostPass();
-        if (o.ghostObj && o.ghostObj.human && o.ghostObj.human.head) {
-          o.ghostObj.human.head.rotation.y = (lane - o.lane) * 0.45;
+
+      // obstacles
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const o = obstacles[i]; o.mesh.position.z += dz;
+        if (o.update) o.update(dt, clock);
+        const oz = o.mesh.position.z;
+        if (oz > 12) { scene.remove(o.mesh); obstacles.splice(i, 1); continue; }
+        if (!o.hit && o.lane === lane && Math.abs(oz) < o.depth / 2 + 0.35 && invuln <= 0) {
+          let hit = false;
+          if (o.type === 'low') hit = py < 0.85;
+          else if (o.type === 'high') hit = slideT <= 0 && py < 2.5;
+          else if (o.type === 'ghost') hit = py < 2.3;
+          else hit = py < 2.3;
+          if (hit) {
+            if (hasFanta) {
+              ramObstacleWithFanta(o);
+            } else if (hasSaiSin) {
+              consumeSaiSinShield(o);
+            } else {
+              o.hit = true; invuln = 1.4; stumble = 0.95; shake = 0.85;
+              gap -= 2.8;
+            if (o.type === 'ghost') {
+              sfx.ghostScare();
+              ui.flash.style.transition = 'none'; ui.flash.style.opacity = 0.65;
+              if (o.ghostObj) {
+                o.ghostObj.human.group.position.z += 0.8;
+                o.ghostObj.human.group.scale.multiplyScalar(1.22);
+              }
+            } else {
+              sfx.hit();
+              ui.flash.style.transition = 'none'; ui.flash.style.opacity = 0.35;
+            }
+            requestAnimationFrame(() => { ui.flash.style.transition = 'opacity .4s'; ui.flash.style.opacity = 0; });
+            }
+          }
+        }
+        if (o.type === 'ghost' && !o.hit && !o.passed && oz > 1.2) {
+          o.passed = true;
+          sfx.ghostPass();
+          if (o.ghostObj && o.ghostObj.human && o.ghostObj.human.head) {
+            o.ghostObj.human.head.rotation.y = (lane - o.lane) * 0.45;
+          }
         }
       }
-    }
-    // offerings
-    for (let i = offerings.length - 1; i >= 0; i--) {
-      const o = offerings[i]; o.mesh.position.z += dz; o.mesh.rotation.y += dt * 3;
-      const oz = o.mesh.position.z;
-      if (oz > 12) { scene.remove(o.mesh); offerings.splice(i, 1); continue; }
-      const isSky = o.mesh.position.y > 3.0;
-      if (isSky && o.lane === lane && Math.abs(oz) < 4.2) {
-        o.mesh.position.y += (py - o.mesh.position.y) * Math.min(1, dt * 8.0);
+      // offerings
+      for (let i = offerings.length - 1; i >= 0; i--) {
+        const o = offerings[i]; o.mesh.position.z += dz; o.mesh.rotation.y += dt * 3;
+        const oz = o.mesh.position.z;
+        if (oz > 12) { scene.remove(o.mesh); offerings.splice(i, 1); continue; }
+        const isSky = o.mesh.position.y > 3.0;
+        if (isSky && o.lane === lane && Math.abs(oz) < 4.2) {
+          o.mesh.position.y += (py - o.mesh.position.y) * Math.min(1, dt * 8.0);
+        }
+        const yClose = isSky ? Math.abs(py - o.mesh.position.y) < 2.5 : (py < 2.2 && !(slideT > 0 && o.mesh.position.y > 1.2));
+        const catchRadius = isSky ? 1.5 : 1.05;
+        if (!o.got && o.lane === lane && Math.abs(oz) < catchRadius && yClose) {
+          o.got = true; scene.remove(o.mesh); offerings.splice(i, 1);
+          offerCount++; gap = Math.min(GHOST_MAX_GAP, gap + 0.65); sfx.coin();
+        }
       }
-      const yClose = isSky ? Math.abs(py - o.mesh.position.y) < 2.5 : (py < 2.2 && !(slideT > 0 && o.mesh.position.y > 1.2));
-      const catchRadius = isSky ? 1.5 : 1.05;
-      if (!o.got && o.lane === lane && Math.abs(oz) < catchRadius && yClose) {
-        o.got = true; scene.remove(o.mesh); offerings.splice(i, 1);
-        offerCount++; gap = Math.min(GHOST_MAX_GAP, gap + 0.65); sfx.coin();
+      for (let i = decor.length - 1; i >= 0; i--) {
+        decor[i].position.z += dz;
+        if (decor[i].userData && decor[i].userData.update) decor[i].userData.update(dt, clock);
+        if (decor[i].position.z > 14) { scene.remove(decor[i]); decor.splice(i, 1); }
       }
-    }
-    for (let i = decor.length - 1; i >= 0; i--) {
-      decor[i].position.z += dz;
-      if (decor[i].userData && decor[i].userData.update) decor[i].userData.update(dt, clock);
-      if (decor[i].position.z > 14) { scene.remove(decor[i]); decor.splice(i, 1); }
     }
 
     // heartbeat
@@ -1573,12 +2210,25 @@ function update(dt) {
     gap = GHOST_START_GAP;
   }
 
+  // ----- crossroads world transform helpers
+  const isTurning = (state === 'play' && fork.active && fork.state === 'turning');
+  const pWorldX = isTurning ? fork.playerX : px;
+  const pWorldZ = isTurning ? fork.playerZ : 0;
+  const yaw = isTurning ? fork.turnYaw : 0;
+  const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+  const rx = Math.cos(yaw), rz = -Math.sin(yaw);
+
   // ----- player pose
   if (state === 'menu') {
     playerRoot.position.set(0.68, 0, 0.65);
     playerRoot.rotation.set(0, 0, 0);
   } else {
-    playerRoot.position.set(px, py, 0);
+    playerRoot.position.set(pWorldX, py, pWorldZ);
+    playerRoot.rotation.y = yaw;
+    if (isTurning) {
+      const turnU = Math.min(1, fork.turnT / fork.turnDur);
+      playerRoot.rotation.z = -fork.chosenDir * 0.25 * Math.sin(turnU * Math.PI);
+    }
   }
   animateRunner(dt, state === 'play');
   if (hasSaiSin) {
@@ -1610,7 +2260,7 @@ function update(dt) {
   if (state === 'menu') {
     // Ghost Tan stands clearly beside the left of ศาลเจ้าพ่อตาล without clipping into the shrine!
     ghostRoot.position.set(-3.45 + Math.sin(clock * 1.4) * 0.08, 0.24 + Math.sin(clock * 2.6) * 0.10, 0.65);
-    ghostRoot.rotation.z = -0.08 + Math.sin(clock * 1.8) * 0.04;
+    ghostRoot.rotation.set(0, 0, -0.08 + Math.sin(clock * 1.8) * 0.04);
     ghost.group.rotation.set(-0.04, 0.72, 0);
     ghostRoot.scale.setScalar(1.15);
   } else {
@@ -1619,7 +2269,13 @@ function update(dt) {
     gz += (targetGz - gz) * Math.min(1, dt * (state === 'dead' ? 14 : 6.5));
     gx += (px - gx) * Math.min(1, dt * 6.0);
     const bob = 0.35 + Math.sin(clock * 4.5) * 0.22;
-    ghostRoot.position.set(gx + Math.sin(clock * 2.0) * 0.45, bob, gz);
+    const latWobble = (isTurning ? 0 : (gx - px)) + Math.sin(clock * 2.0) * 0.45;
+    ghostRoot.position.set(
+      pWorldX - fx * gz + rx * latWobble,
+      bob,
+      pWorldZ - fz * gz + rz * latWobble
+    );
+    ghostRoot.rotation.y = state === 'dead' ? 0 : yaw;
     ghostRoot.rotation.z = Math.sin(clock * 2.1) * 0.06;
     if (state === 'dead') {
       ghost.group.rotation.y += (0 - ghost.group.rotation.y) * Math.min(1, dt * 14);   // turn to face the player cam
@@ -1632,15 +2288,16 @@ function update(dt) {
     }
   }
   ghost.update(dt, clock);
-  ghostLight.position.set(ghostRoot.position.x, 2, ghostRoot.position.z - 1);
+  ghostLight.position.set(ghostRoot.position.x + fx, 2, ghostRoot.position.z + fz);
   ghostLight.intensity = 0.8 + Math.min(2.2, Math.max(0, (14 - gz) * 0.2));
-  lantern.position.set(px, 3, 1.5);
+  lantern.position.set(pWorldX - fx * 1.5, 3, pWorldZ - fz * 1.5);
 
   // ----- cameras
   const sh = shake > 0 ? shake : 0;
   const ox = (Math.random() - 0.5) * sh * 0.5, oy = (Math.random() - 0.5) * sh * 0.5;
   shake = Math.max(0, shake - dt * 2.2);
-  const cx = px * 0.65;
+  const cx = isTurning ? pWorldX : px * 0.65;
+  const cz = pWorldZ;
   const introPos = { x: 2.15 + Math.sin(clock * 0.8) * 0.08, y: 2.35 + Math.cos(clock * 0.9) * 0.05, z: 3.95 };
   const introLook = { x: -1.05, y: 1.85, z: -0.05 };
   if (state === 'menu') {
@@ -1654,9 +2311,9 @@ function update(dt) {
     const camY = isHigh ? py + 2.2 : 4.0 + oy + py;
     const camZ = isHigh ? 6.2 : 6.8;
     const lookY = isHigh ? py + 0.8 : 1.5 + py;
-    const lookZ = isHigh ? -16.0 : -9.0;
-    const tx = cx + ox, ty = camY, tz = camZ;
-    const lx = cx, ly = lookY, lz = lookZ;
+    const lookDist = isHigh ? 16.0 : 9.0;
+    const tx = cx - fx * camZ + ox, ty = camY, tz = cz - fz * camZ;
+    const lx = cx + fx * lookDist, ly = lookY, lz = cz + fz * lookDist;
     mainCam.position.set(
       introPos.x + (tx - introPos.x) * e,
       introPos.y + (ty - introPos.y) * e,
@@ -1669,6 +2326,8 @@ function update(dt) {
     );
   }
   const isHigh = py > 2.0;
+  const pipBaseX = isTurning ? pWorldX : px * 0.9;
+  const pipLookBaseX = isTurning ? pWorldX : px;
   if (isHigh) {
     const baseFov = (W / H < 0.8 ? 74 : 62);
     const targetFov = baseFov + (hasFanta ? 8 : 0);
@@ -1676,11 +2335,11 @@ function update(dt) {
       mainCam.fov += (targetFov - mainCam.fov) * Math.min(1, dt * 6);
       mainCam.updateProjectionMatrix();
     }
-    pipCam.position.set(px * 0.8 + 0.85, py + 1.2, -4.2);
-    pipCam.lookAt(px, py + 0.6, 4.0);
+    pipCam.position.set(pipBaseX * (isTurning ? 1 : 0.8 / 0.9) + fx * 4.2 + rx * 0.85, py + 1.2, pWorldZ + fz * 4.2 + rz * 0.85);
+    pipCam.lookAt(pipLookBaseX - fx * 4.0, py + 0.6, pWorldZ - fz * 4.0);
   } else {
-    pipCam.position.set(px * 0.9 + 1.05 + ox * 0.3, 2.35 + oy * 0.3, -3.6);
-    pipCam.lookAt(px + 0.15, 2.15, 5.2);
+    pipCam.position.set(pipBaseX + fx * 3.6 + rx * 1.05 + ox * 0.3, 2.35 + oy * 0.3, pWorldZ + fz * 3.6 + rz * 1.05);
+    pipCam.lookAt(pipLookBaseX - fx * 5.2 + rx * 0.15, 2.15, pWorldZ - fz * 5.2 + rz * 0.15);
   }
 
   // ----- HUD
