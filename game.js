@@ -914,6 +914,11 @@ const ui = {
   fantaBadge: $('fantaBadge'), fantaBarFill: $('fantaBarFill'), fantaTimerText: $('fantaTimerText'),
   forkBanner: $('forkBanner'), forkLeftCard: $('forkLeftCard'), forkRightCard: $('forkRightCard'), biomeToast: $('biomeToast'),
   fScore: $('fScore'), fOffer: $('fOffer'), fBest: $('fBest'),
+  menuLbBtn: $('menuLbBtn'), overLbBtn: $('overLbBtn'),
+  lbModal: $('lbModal'), lbCloseBtn: $('lbCloseBtn'), lbRefreshBtn: $('lbRefreshBtn'),
+  lbStatus: $('lbStatus'), lbList: $('lbList'), lbMyRank: $('lbMyRank'),
+  lbSubmitWrap: $('lbSubmitWrap'), lbNickInput: $('lbNickInput'),
+  lbSubmitBtn: $('lbSubmitBtn'), lbSubmitMsg: $('lbSubmitMsg'),
 };
 
 // ============================================================ collectibles (🪽 กระด้ง & 🧵 สายสิญจน์มงคล & 🥤 น้ำแดง)
@@ -1730,6 +1735,199 @@ window.getGameState = () => ({
   forkActive: fork.active, forkState: fork.state, forkZ: fork.z
 });
 let deathTimer = null;
+let lastRunDist = 0;
+let lastRunOffers = 0;
+
+// ============================================================ Global Leaderboard (Supabase REST + RPC)
+function getClientId() {
+  let id = localStorage.getItem('tanClientId');
+  if (!id || id.length < 6) {
+    const rand = (window.crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    id = `tan-${rand}`.slice(0, 48);
+    localStorage.setItem('tanClientId', id);
+  }
+  return id;
+}
+
+function cleanNickname(raw) {
+  const cleaned = String(raw || '')
+    .replace(/[\r\n\t\x00-\x1f\x7f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b(fuck|shit|bitch|asshole|cunt|dick)\b|เหี้ย|สัส|ควย|เย็ด|หี|แตด/gi, '***')
+    .slice(0, 16)
+    .trim();
+  return cleaned || 'ผู้แก้บนนิรนาม';
+}
+
+function getLbConfig() {
+  const cfg = window.SUBTAN_LB_CONFIG || {};
+  const url = String(cfg.supabaseUrl || '').trim().replace(/\/+$/, '');
+  const key = String(cfg.supabaseAnonKey || '').trim();
+  const table = String(cfg.table || 'leaderboard').trim() || 'leaderboard';
+  return { url, key, table, ready: Boolean(url && key) };
+}
+
+async function sbFetch(path, opts = {}) {
+  const cfg = getLbConfig();
+  if (!cfg.ready) throw new Error('SUPABASE_NOT_CONFIGURED');
+  const res = await fetch(`${cfg.url}${path}`, {
+    ...opts,
+    headers: {
+      apikey: cfg.key,
+      Authorization: `Bearer ${cfg.key}`,
+      'Content-Type': 'application/json',
+      ...(opts.headers || {}),
+    },
+  });
+  const txt = await res.text();
+  let data = null;
+  if (txt) {
+    try { data = JSON.parse(txt); } catch (_) { data = txt; }
+  }
+  if (!res.ok) {
+    const msg = (data && data.message) ? data.message : `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
+function renderLeaderboardRows(rows, myRankData) {
+  if (!ui.lbList || !ui.lbMyRank) return;
+  const myId = getClientId();
+  ui.lbList.innerHTML = '';
+
+  if (!rows || rows.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'lb-empty';
+    empty.textContent = 'ยังไม่มีผู้กล้าส่งสถิติบนกระดานโลก ลองวิ่งแล้วส่งชื่อคนแรกดูครับ!';
+    ui.lbList.appendChild(empty);
+  } else {
+    rows.forEach((row, idx) => {
+      const rankNum = idx + 1;
+      const el = document.createElement('div');
+      el.className = 'lb-row';
+      if (rankNum <= 3) el.classList.add(`rank-${rankNum}`);
+      if (row.client_id && row.client_id === myId) el.classList.add('me');
+
+      const rEl = document.createElement('div');
+      rEl.className = 'lb-rank';
+      rEl.textContent = rankNum === 1 ? '🥇' : rankNum === 2 ? '🥈' : rankNum === 3 ? '🥉' : `#${rankNum}`;
+
+      const nEl = document.createElement('div');
+      nEl.className = 'lb-name';
+      nEl.textContent = cleanNickname(row.nickname);
+
+      const gEl = document.createElement('div');
+      gEl.className = 'lb-gar';
+      gEl.textContent = `🌼 ${Number(row.garlands) || 0}`;
+
+      const dEl = document.createElement('div');
+      dEl.className = 'lb-dist';
+      dEl.textContent = `${Number(row.distance) || 0} ม.`;
+
+      el.append(rEl, nEl, gEl, dEl);
+      ui.lbList.appendChild(el);
+    });
+  }
+
+  if (myRankData && myRankData.found) {
+    const totalTxt = myRankData.total ? ` / ${myRankData.total} คน` : '';
+    ui.lbMyRank.textContent = `อันดับของคุณ: #${myRankData.rank}${totalTxt} · ${cleanNickname(myRankData.nickname)} · ${myRankData.distance} ม. · 🌼 ${myRankData.garlands || 0}`;
+  } else {
+    const savedNick = localStorage.getItem('tanNickname');
+    const namePart = savedNick ? `${cleanNickname(savedNick)} · ` : '';
+    ui.lbMyRank.textContent = `อันดับของคุณ: ยังไม่เคยส่งขึ้นโลก · ${namePart}สถิติบนเครื่อง ${best} ม.`;
+  }
+}
+
+async function refreshLeaderboard() {
+  if (!ui.lbStatus || !ui.lbList) return;
+  const cfg = getLbConfig();
+  if (!cfg.ready) {
+    ui.lbStatus.textContent = '⚠️ ยังไม่ได้เชื่อมต่อ Supabase (ตั้งค่า URL/Key ใน leaderboard-config.js)';
+    const localRows = best > 0 ? [{
+      client_id: getClientId(),
+      nickname: localStorage.getItem('tanNickname') || 'สถิติบนเครื่องคุณ',
+      distance: best,
+      garlands: lastRunOffers || 0,
+    }] : [];
+    renderLeaderboardRows(localRows, null);
+    return;
+  }
+
+  ui.lbStatus.textContent = '⏳ กำลังโหลดอันดับโลก...';
+  try {
+    const myId = getClientId();
+    const [topRows, myRank] = await Promise.all([
+      sbFetch(`/rest/v1/${encodeURIComponent(cfg.table)}?select=client_id,nickname,distance,garlands,updated_at&order=distance.desc,garlands.desc,updated_at.asc&limit=10`),
+      sbFetch('/rest/v1/rpc/get_player_rank', {
+        method: 'POST',
+        body: JSON.stringify({ p_client_id: myId }),
+      }).catch(() => null),
+    ]);
+    const totalTxt = (myRank && myRank.total) ? ` · ผู้เล่นทั้งหมด ${myRank.total} คน` : '';
+    ui.lbStatus.textContent = `🟢 ออนไลน์ · Top 10 สูงสุด${totalTxt}`;
+    renderLeaderboardRows(Array.isArray(topRows) ? topRows : [], myRank);
+  } catch (err) {
+    ui.lbStatus.textContent = `❌ โหลดอันดับไม่สำเร็จ (${err.message || 'เครือข่ายขัดข้อง'})`;
+  }
+}
+
+function openLeaderboard() {
+  if (!ui.lbModal) return;
+  ui.lbModal.style.display = 'flex';
+  refreshLeaderboard();
+}
+
+function closeLeaderboard() {
+  if (!ui.lbModal) return;
+  ui.lbModal.style.display = 'none';
+}
+
+async function submitCurrentScore() {
+  if (!ui.lbNickInput || !ui.lbSubmitBtn || !ui.lbSubmitMsg) return;
+  const nick = cleanNickname(ui.lbNickInput.value);
+  ui.lbNickInput.value = nick;
+  localStorage.setItem('tanNickname', nick);
+
+  const scoreDist = Math.max(best, lastRunDist);
+  const scoreGar = lastRunDist >= best ? lastRunOffers : 0;
+
+  const cfg = getLbConfig();
+  if (!cfg.ready) {
+    ui.lbSubmitMsg.className = 'err';
+    ui.lbSubmitMsg.textContent = 'บันทึกชื่อเล่นแล้ว (ใส่ Supabase URL/Key ใน leaderboard-config.js เพื่อส่งขึ้นโลก)';
+    return;
+  }
+
+  ui.lbSubmitBtn.disabled = true;
+  ui.lbSubmitMsg.className = '';
+  ui.lbSubmitMsg.textContent = '⏳ กำลังส่งคะแนนขึ้นศาลโลก...';
+  try {
+    const res = await sbFetch('/rest/v1/rpc/submit_score', {
+      method: 'POST',
+      body: JSON.stringify({
+        p_client_id: getClientId(),
+        p_nickname: nick,
+        p_distance: Math.floor(scoreDist),
+        p_garlands: Math.floor(scoreGar),
+      }),
+    });
+    const rankTxt = res && res.rank ? `#${res.rank}` : '-';
+    const bestTxt = res && res.distance !== undefined ? res.distance : scoreDist;
+    ui.lbSubmitMsg.className = '';
+    ui.lbSubmitMsg.textContent = `✅ ส่งสำเร็จ! อันดับโลกของคุณ: ${rankTxt} (สถิติ ${bestTxt} ม.)`;
+    ui.lbSubmitBtn.disabled = false;
+  } catch (err) {
+    ui.lbSubmitMsg.className = 'err';
+    ui.lbSubmitMsg.textContent = `❌ ส่งไม่สำเร็จ (${err.message || 'กรุณาลองใหม่'})`;
+    ui.lbSubmitBtn.disabled = false;
+  }
+}
+
 function showDeathButtons() {
   if (!ui.over) return;
   if (deathTimer) { clearTimeout(deathTimer); deathTimer = null; }
@@ -1745,8 +1943,13 @@ function die() {
   sfx.scream();
   ui.flash.style.opacity = 1;
   const m = Math.floor(dist);
+  lastRunDist = m;
+  lastRunOffers = offerCount;
   if (m > best) { best = m; localStorage.setItem('tanGhostBest', best); }
   ui.fScore.textContent = m; ui.fOffer.textContent = offerCount; ui.fBest.textContent = best;
+  if (ui.lbNickInput) ui.lbNickInput.value = localStorage.getItem('tanNickname') || '';
+  if (ui.lbSubmitMsg) { ui.lbSubmitMsg.className = ''; ui.lbSubmitMsg.textContent = ''; }
+  if (ui.lbSubmitBtn) ui.lbSubmitBtn.disabled = false;
   ui.hint.style.display = 'none';
   ui.pip.style.display = 'none';
   ui.hud.style.display = 'none';
@@ -1797,7 +2000,19 @@ function slide() {
   slideT = 0.75;
 }
 window.addEventListener('keydown', (e) => {
+  const activeTag = document.activeElement && document.activeElement.tagName;
+  if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') {
+    if (e.key === 'Enter' && document.activeElement === ui.lbNickInput) {
+      e.preventDefault();
+      submitCurrentScore();
+    }
+    return;
+  }
   const k = e.key.toLowerCase();
+  if (ui.lbModal && ui.lbModal.style.display === 'flex') {
+    if (k === 'escape') { e.preventDefault(); closeLeaderboard(); }
+    return;
+  }
   if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', ' '].includes(k)) e.preventDefault();
   if (k === 'escape' || k === 'p') { togglePause(); return; }
   if (paused) return;
@@ -1861,6 +2076,18 @@ ui.over.addEventListener('click', (e) => {
 });
 $('retryBtn').addEventListener('click', (e) => { e.stopPropagation(); start(); });
 $('menuBtn').addEventListener('click', (e) => { e.stopPropagation(); goToMenu(); });
+if (ui.menuLbBtn) ui.menuLbBtn.addEventListener('click', (e) => { e.stopPropagation(); openLeaderboard(); });
+if (ui.overLbBtn) ui.overLbBtn.addEventListener('click', (e) => { e.stopPropagation(); openLeaderboard(); });
+if (ui.lbCloseBtn) ui.lbCloseBtn.addEventListener('click', (e) => { e.stopPropagation(); closeLeaderboard(); });
+if (ui.lbRefreshBtn) ui.lbRefreshBtn.addEventListener('click', (e) => { e.stopPropagation(); refreshLeaderboard(); });
+if (ui.lbModal) {
+  ui.lbModal.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (e.target === ui.lbModal) closeLeaderboard();
+  });
+}
+if (ui.lbNickInput) ui.lbNickInput.addEventListener('click', (e) => e.stopPropagation());
+if (ui.lbSubmitBtn) ui.lbSubmitBtn.addEventListener('click', (e) => { e.stopPropagation(); submitCurrentScore(); });
 ui.pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePause(); });
 ui.pauseBtn.addEventListener('touchstart', (e) => { e.stopPropagation(); }, { passive: true });
 $('resumeBtn').addEventListener('click', (e) => { e.stopPropagation(); togglePause(false); });
