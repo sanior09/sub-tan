@@ -763,49 +763,16 @@ function spawnRow() {
     return;
   }
   const z = SPAWN_Z;
-  const isKrahangRow = sinceKrahang >= nextKrahangDist && dist > 55 && flyT <= 0 && !isGlidingDown;
-  if (isKrahangRow) {
-    sinceKrahang = 0;
-    nextKrahangDist = 220 + Math.random() * 120; // 220m - 340m spacing between flight power-ups
-    const kLane = Math.floor(Math.random() * 3);
-    spawnKrahangItem(kLane, z);
-    for (let l = 0; l < 3; l++) {
-      if (l !== kLane && Math.random() < 0.35) spawnObstacle(l, 'low', z);
+  const isPowerupRow = sincePowerup >= nextPowerupDist && dist > 35 && flyT <= 0 && !isGlidingDown;
+  if (isPowerupRow) {
+    const pType = drawNextPowerupType();
+    if (pType) {
+      sincePowerup = 0;
+      nextPowerupDist = 60 + Math.random() * 65; // 60m - 125m randomized spacing
+      spawnPowerupRow(pType, z);
+      rowSpacing = speed * (0.9 + Math.random() * 0.35);
+      return;
     }
-    const zc = z + rowSpacing * 0.5;
-    for (let i = -2; i <= 2; i++) spawnOffering(kLane, zc + i * 1.8, 1.0);
-    rowSpacing = speed * 1.0;
-    return;
-  }
-
-  const isSaiSinRow = sinceSaiSin >= nextSaiSinDist && dist > 35 && flyT <= 0 && !isGlidingDown && !hasSaiSin;
-  if (isSaiSinRow) {
-    sinceSaiSin = 0;
-    nextSaiSinDist = 160 + Math.random() * 90;
-    const sLane = Math.floor(Math.random() * 3);
-    spawnSaiSinItem(sLane, z);
-    for (let l = 0; l < 3; l++) {
-      if (l !== sLane && Math.random() < 0.35) spawnObstacle(l, 'low', z);
-    }
-    const zc = z + rowSpacing * 0.5;
-    for (let i = -2; i <= 2; i++) spawnOffering(sLane, zc + i * 1.8, 1.0);
-    rowSpacing = speed * 1.0;
-    return;
-  }
-
-  const isFantaRow = sinceFanta >= nextFantaDist && dist > 40 && flyT <= 0 && !isGlidingDown && !hasFanta;
-  if (isFantaRow) {
-    sinceFanta = 0;
-    nextFantaDist = 170 + Math.random() * 90;
-    const fLane = Math.floor(Math.random() * 3);
-    spawnFantaItem(fLane, z);
-    for (let l = 0; l < 3; l++) {
-      if (l !== fLane && Math.random() < 0.35) spawnObstacle(l, 'low', z);
-    }
-    const zc = z + rowSpacing * 0.5;
-    for (let i = -2; i <= 2; i++) spawnOffering(fLane, zc + i * 1.8, 1.0);
-    rowSpacing = speed * 1.0;
-    return;
   }
 
   const isGhostRow = sinceGhost >= nextGhostDist && dist > 30;
@@ -949,17 +916,100 @@ const ui = {
   fScore: $('fScore'), fOffer: $('fOffer'), fBest: $('fBest'),
 };
 
-// ============================================================ collectibles (🪽 กระด้ง & 🧵 สายสิญจน์มงคล)
+// ============================================================ collectibles (🪽 กระด้ง & 🧵 สายสิญจน์มงคล & 🥤 น้ำแดง)
 const collectibles = [];
 const MAX_SAISIN_T = 10.0;
 let hasSaiSin = false;
 let saiSinT = 0;
-let sinceSaiSin = 0, nextSaiSinDist = 95 + Math.random() * 45;
 
 const MAX_FANTA_T = 7.5;
 let hasFanta = false;
 let fantaT = 0;
-let sinceFanta = 0, nextFantaDist = 110 + Math.random() * 60;
+
+let sincePowerup = 0, nextPowerupDist = 50 + Math.random() * 55;
+let powerupBag = [];
+let lastPowerupType = null;
+
+function refillPowerupBag() {
+  powerupBag = ['saiSin', 'fanta', 'krahang'];
+  for (let i = powerupBag.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [powerupBag[i], powerupBag[j]] = [powerupBag[j], powerupBag[i]];
+  }
+  // Prevent consecutive repeat across shuffle-bag boundaries
+  if (lastPowerupType && powerupBag[0] === lastPowerupType && powerupBag.length > 1) {
+    const swapIdx = 1 + Math.floor(Math.random() * (powerupBag.length - 1));
+    [powerupBag[0], powerupBag[swapIdx]] = [powerupBag[swapIdx], powerupBag[0]];
+  }
+}
+
+function drawNextPowerupType() {
+  if (!powerupBag.length) refillPowerupBag();
+  const isEligible = (t) => (
+    t === 'krahang' ||
+    (t === 'saiSin' && !hasSaiSin) ||
+    (t === 'fanta' && !hasFanta)
+  );
+  let idx = powerupBag.findIndex(isEligible);
+  if (idx === -1) {
+    refillPowerupBag();
+    idx = powerupBag.findIndex(isEligible);
+    if (idx === -1) return null;
+  }
+  const [picked] = powerupBag.splice(idx, 1);
+  lastPowerupType = picked;
+  return picked;
+}
+
+function spawnPowerupRow(type, z) {
+  const spawners = {
+    krahang: spawnKrahangItem,
+    saiSin: spawnSaiSinItem,
+    fanta: spawnFantaItem,
+  };
+  const spawnFn = spawners[type];
+  if (!spawnFn) return;
+
+  const itemLane = Math.floor(Math.random() * 3);
+  const itemZ = z + (Math.random() - 0.5) * 3.0;
+  spawnFn(itemLane, itemZ);
+
+  // Randomize surrounding obstacle layout so power-ups don't share one repetitive pattern
+  const otherLanes = [0, 1, 2].filter((l) => l !== itemLane);
+  const guardStyle = Math.floor(Math.random() * 4);
+  if (guardStyle === 0) {
+    otherLanes.forEach((l) => {
+      if (Math.random() < 0.65) spawnObstacle(l, pick(TYPES), z);
+    });
+  } else if (guardStyle === 1) {
+    const l0 = otherLanes[Math.floor(Math.random() * 2)];
+    spawnObstacle(l0, Math.random() < 0.5 ? 'block' : 'high', z);
+  } else if (guardStyle === 2) {
+    const l0 = otherLanes[Math.floor(Math.random() * 2)];
+    spawnObstacle(l0, pick(TYPES), z + (Math.random() < 0.5 ? -3.2 : 3.2));
+  }
+
+  // Randomize garland trail pattern accompanying the power-up
+  const zc = z + rowSpacing * 0.5;
+  const trailStyle = Math.floor(Math.random() * 4);
+  if (trailStyle === 0) {
+    const half = 1 + Math.floor(Math.random() * 2);
+    for (let i = -half; i <= half; i++) spawnOffering(itemLane, zc + i * 1.8, 1.0);
+  } else if (trailStyle === 1) {
+    const nextLane = itemLane === 1 ? (Math.random() < 0.5 ? 0 : 2) : 1;
+    [-2, -1, 0, 1, 2].forEach((i, idx) => {
+      spawnOffering(idx < 2 ? itemLane : nextLane, zc + i * 1.8, 1.0);
+    });
+  } else if (trailStyle === 2) {
+    [-2, -1, 0, 1, 2].forEach((i) => {
+      const arcY = 1.0 + Math.max(0, 1.2 - Math.abs(i) * 0.5);
+      spawnOffering(itemLane, zc + i * 1.8, arcY);
+    });
+  } else {
+    const altLane = otherLanes[Math.floor(Math.random() * 2)];
+    for (let i = -1; i <= 2; i++) spawnOffering(altLane, zc + i * 1.8, 1.0);
+  }
+}
 
 // 🧵 Sacred Sai Sin Shield Group attached to playerRoot
 const saiSinShieldGroup = new THREE.Group();
@@ -1119,7 +1169,7 @@ function activateFantaBoost() {
   hasFanta = true;
   fantaT = MAX_FANTA_T;
   fantaAuraGroup.visible = true;
-  sinceFanta = 0;
+  sincePowerup = 0;
   sfx.fantaPickup();
   if (ui.fantaBadge) {
     ui.fantaBadge.style.display = 'flex';
@@ -1166,7 +1216,7 @@ function ramObstacleWithFanta(o) {
 function activateSaiSinShield() {
   hasSaiSin = true;
   saiSinShieldGroup.visible = true;
-  sinceSaiSin = 0;
+  sincePowerup = 0;
   sfx.saiSinPickup();
   saiSinT = MAX_SAISIN_T;
   if (ui.saiSinBadge) {
@@ -1215,7 +1265,6 @@ function consumeSaiSinShield(o) {
 const SKY_Y = 14.0;
 const MAX_FLY_T = 7.5;
 let flyT = 0, isGlidingDown = false, flapTimer = 0, skyOfferTimer = 0;
-let sinceKrahang = 0, nextKrahangDist = 75 + Math.random() * 45;
 
 function spawnKrahangItem(lane, z) {
   const g = new THREE.Group();
@@ -1257,7 +1306,7 @@ function activateKrahangFlight() {
   invuln = MAX_FLY_T + 4.0;
   gap = GHOST_MAX_GAP;
   gz = GHOST_MAX_GAP;
-  sinceKrahang = 0;
+  sincePowerup = 0;
   sfx.krahangPickup();
   if (player.setKrahangVisible) player.setKrahangVisible(true);
   if (ui.krahangBadge) {
@@ -1605,7 +1654,10 @@ function reset() {
   speed = 16; speedMul = 1; dist = 0; offerCount = 0; tPlay = 0;
   gap = gz = GHOST_START_GAP; gx = 0;
   lane = 1; px = 0; py = 0; vy = 0; slideT = 0; invuln = 0; stumble = 0; shake = 0; landingGrace = 0;
-  flyT = 0; isGlidingDown = false; sinceKrahang = 0; nextKrahangDist = 180 + Math.random() * 80; hasSaiSin = false; saiSinT = 0; sinceSaiSin = 0; nextSaiSinDist = 95 + Math.random() * 45; if (saiSinShieldGroup) saiSinShieldGroup.visible = false; if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'none'; hasFanta = false; fantaT = 0; sinceFanta = 0; nextFantaDist = 110 + Math.random() * 60; if (fantaAuraGroup) fantaAuraGroup.visible = false; if (ui.fantaBadge) ui.fantaBadge.style.display = 'none';
+  flyT = 0; isGlidingDown = false;
+  sincePowerup = 0; nextPowerupDist = 50 + Math.random() * 55; lastPowerupType = null; refillPowerupBag();
+  hasSaiSin = false; saiSinT = 0; if (saiSinShieldGroup) saiSinShieldGroup.visible = false; if (ui.saiSinBadge) ui.saiSinBadge.style.display = 'none';
+  hasFanta = false; fantaT = 0; if (fantaAuraGroup) fantaAuraGroup.visible = false; if (ui.fantaBadge) ui.fantaBadge.style.display = 'none';
   if (player && player.setKrahangVisible) player.setKrahangVisible(false);
   if (ui.krahangBadge) { ui.krahangBadge.style.display = 'none'; ui.krahangBadge.classList.remove('warning'); }
   if (ui.saiSinBadge) { ui.saiSinBadge.style.display = 'none'; ui.saiSinBadge.classList.remove('warning'); }
@@ -1665,6 +1717,12 @@ window.triggerFanta = () => activateFantaBoost();
 window.triggerFly = () => activateKrahangFlight();
 window.triggerFork = () => spawnFork();
 window.chooseFork = (d) => chooseFork(d);
+window.debugPowerups = {
+  draw: () => drawNextPowerupType(),
+  spawnRow: (t, z) => spawnPowerupRow(t, z),
+  reset: () => reset(),
+  counts: () => ({ collectibles: collectibles.length, obstacles: obstacles.length, offerings: offerings.length })
+};
 window.getGameState = () => ({
   flyT, py, offerCount, state, gap, dist, deadT,
   hasSaiSin, saiSinT, hasFanta, fantaT,
@@ -1918,8 +1976,8 @@ function update(dt) {
         invuln = Math.max(invuln, 4.0); // 4.0s landing grace immunity against obstacle stumbles!
         gap = GHOST_MAX_GAP;            // Ghost Tan stays at safe max distance
         gz = GHOST_MAX_GAP + 5.0;       // Ghost visibly starts far behind upon touchdown
-        sinceKrahang = 0;               // Reset ground travel distance upon touchdown
-        nextKrahangDist = 220 + Math.random() * 120;
+        sincePowerup = 0;               // Reset ground travel distance upon touchdown
+        nextPowerupDist = 65 + Math.random() * 55;
         sinceRow = 0; rowSpacing = speed * 2.8; // Clear obstacle runway upon touchdown!
         // Clear any ground obstacles ahead for 75m to guarantee a wide open landing strip
         for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -2060,9 +2118,7 @@ function update(dt) {
       sinceDecor += dz; if (sinceDecor > 9) { sinceDecor = 0; if (!fork.active) spawnDecor(SPAWN_Z); }
       sinceGhost += dz;
       if (flyT <= 0 && !isGlidingDown) {
-        sinceKrahang += dz;
-        sinceSaiSin += dz;
-        sinceFanta += dz;
+        sincePowerup += dz;
         if (!fork.active) sinceFork += dz;
       }
       sinceRow += dz; if (sinceRow >= rowSpacing) { sinceRow = 0; spawnRow(); }
