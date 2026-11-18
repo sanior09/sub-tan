@@ -24,6 +24,18 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio || 1, 1.35) : Math.min(window.devicePixelRatio || 1, 2));
 renderer.setScissorTest(true);
 
+let isContextLost = false;
+canvas.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault();
+  isContextLost = true;
+  console.warn('WebGL context lost - rendering paused.');
+}, false);
+canvas.addEventListener('webglcontextrestored', () => {
+  isContextLost = false;
+  console.info('WebGL context restored.');
+  resize();
+}, false);
+
 const scene = new THREE.Scene();
 const FOG_COLOR = 0x070914;
 scene.background = new THREE.Color(FOG_COLOR);
@@ -52,6 +64,12 @@ const GEO = {
   garland: new THREE.TorusGeometry(0.3, 0.1, 8, 18),
   garlandPlane: new THREE.PlaneGeometry(0.95, 0.95),
   fantaPlane: new THREE.PlaneGeometry(0.75, 1.45),
+  saisinPearl: new THREE.SphereGeometry(0.34, 14, 14),
+  saisinTorus: new THREE.TorusGeometry(0.44, 0.042, 8, 20),
+  saisinRing: new THREE.RingGeometry(0.50, 0.68, 24),
+  fantaRing: new THREE.RingGeometry(0.42, 0.65, 24),
+  krahangRing: new THREE.RingGeometry(0.52, 0.70, 24),
+  ghostRing: new THREE.RingGeometry(0.25, 1.15, 20),
 };
 const garlandTex = (() => {
   const t = new THREE.Texture();
@@ -96,7 +114,43 @@ const MAT = {
     map: garlandTex, transparent: true, alphaTest: 0.08, side: THREE.DoubleSide, fog: false }),
   fantaPic: new THREE.MeshBasicMaterial({
     map: fantaTex, transparent: true, alphaTest: 0.08, side: THREE.DoubleSide, fog: false }),
+  saisinPearl: new THREE.MeshStandardMaterial({
+    color: 0xf8fafc, emissive: 0x22d3ee, emissiveIntensity: 0.65, roughness: 0.15, metalness: 0.1
+  }),
+  saisinTorusA: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }),
+  saisinTorusB: new THREE.MeshStandardMaterial({ color: 0x67e8f9, emissive: 0x06b6d4, emissiveIntensity: 0.4 }),
+  saisinRing: new THREE.MeshBasicMaterial({ color: 0x67e8f9, side: THREE.DoubleSide, transparent: true, opacity: 0.85 }),
+  fantaRing: new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide, transparent: true, opacity: 0.85 }),
+  krahangRing: new THREE.MeshBasicMaterial({ color: 0xffd23a, side: THREE.DoubleSide, transparent: true, opacity: 0.80 }),
+  ghostEye: new THREE.MeshBasicMaterial({ color: 0xff0024, fog: false }),
+  ghostMistRoadside: new THREE.MeshBasicMaterial({ color: 0xff1226, transparent: true, opacity: 0.36, side: THREE.DoubleSide, fog: false }),
+  ghostMistLane: new THREE.MeshBasicMaterial({ color: 0xff1226, transparent: true, opacity: 0.62, side: THREE.DoubleSide, fog: false }),
 };
+
+Object.values(GEO).forEach((g) => { if (g) g._isShared = true; });
+Object.values(MAT).forEach((m) => { if (m) m._isShared = true; });
+if (garlandTex) garlandTex._isShared = true;
+if (fantaTex) fantaTex._isShared = true;
+
+function safeRemove(node) {
+  if (!node) return;
+  scene.remove(node);
+  node.traverse((child) => {
+    if (child.isMesh || child.isSprite) {
+      if (child.geometry && !child.geometry._isShared && typeof child.geometry.dispose === 'function') {
+        child.geometry.dispose();
+      }
+      if (child.material) {
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach((m) => {
+          if (m && !m._isShared && typeof m.dispose === 'function') {
+            m.dispose();
+          }
+        });
+      }
+    }
+  });
+}
 
 function stripeTexture() {
   const c = document.createElement('canvas'); c.width = 128; c.height = 32;
@@ -298,7 +352,7 @@ const SCENERY_MAT = (function () {
     transparent: true, depthWrite: false
   });
 
-  return {
+  const res = {
     shadowMat,
     candleHaloMat,
     shrines: [
@@ -311,6 +365,11 @@ const SCENERY_MAT = (function () {
       loadPair(src.tree2, 0xb8ccb8, 0x485846, 0x506450, 0x1e281e)    // ต้นมะม่วงมีลูกมะม่วงห้อย
     ]
   };
+  shadowMat._isShared = true;
+  candleHaloMat._isShared = true;
+  res.shrines.forEach((p) => { if (p.front) p.front._isShared = true; if (p.back) p.back._isShared = true; });
+  res.trees.forEach((p) => { if (p.front) p.front._isShared = true; if (p.back) p.back._isShared = true; });
+  return res;
 })();
 let treeSeq = 0;
 let shrineSeq = 0;
@@ -652,28 +711,19 @@ function makeStandingGhost(isRoadside) {
   human.group.position.y = 0.12;
   g.add(human.group);
 
-  // Piercing glowing red ghostly eyes
-  const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0024, fog: false });
-  const eyeL = new THREE.Mesh(GEO.sph, eyeMat);
+  // Piercing glowing red ghostly eyes (reusing shared materials)
+  const eyeL = new THREE.Mesh(GEO.sph, MAT.ghostEye);
   eyeL.scale.set(0.048, 0.048, 0.048);
   eyeL.position.set(-0.11, 0.045, 0.30);
   human.head.add(eyeL);
 
-  const eyeR = new THREE.Mesh(GEO.sph, eyeMat);
+  const eyeR = new THREE.Mesh(GEO.sph, MAT.ghostEye);
   eyeR.scale.set(0.048, 0.048, 0.048);
   eyeR.position.set(0.10, 0.035, 0.30);
   human.head.add(eyeR);
 
-  // Eerie blood-red ground spectral aura ring
-  const ringGeo = new THREE.RingGeometry(0.25, 1.15, 24);
-  const ringMat = new THREE.MeshBasicMaterial({
-    color: 0xff1226,
-    transparent: true,
-    opacity: isRoadside ? 0.36 : 0.62,
-    side: THREE.DoubleSide,
-    fog: false
-  });
-  const mistRing = new THREE.Mesh(ringGeo, ringMat);
+  // Eerie blood-red ground spectral aura ring (reusing shared ring geometry & materials)
+  const mistRing = new THREE.Mesh(GEO.ghostRing, isRoadside ? MAT.ghostMistRoadside : MAT.ghostMistLane);
   mistRing.rotation.x = Math.PI / 2;
   mistRing.position.y = 0.03;
   g.add(mistRing);
@@ -1087,31 +1137,21 @@ playerRoot.add(fantaAuraGroup);
 function spawnSaiSinItem(lane, z) {
   const g = new THREE.Group();
   
-  // Floating crystal pearl
-  const pearlGeo = new THREE.SphereGeometry(0.34, 18, 18);
-  const pearlMat = new THREE.MeshStandardMaterial({
-    color: 0xf8fafc,
-    emissive: 0x22d3ee,
-    emissiveIntensity: 0.65,
-    roughness: 0.15,
-    metalness: 0.1
-  });
-  const pearl = new THREE.Mesh(pearlGeo, pearlMat);
+  // Floating crystal pearl (reusing shared geo & mat)
+  const pearl = new THREE.Mesh(GEO.saisinPearl, MAT.saisinPearl);
   g.add(pearl);
 
-  // Twin Holy Thread loops
-  const torusA = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.042, 10, 28), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }));
+  // Twin Holy Thread loops (reusing shared geo & mat)
+  const torusA = new THREE.Mesh(GEO.saisinTorus, MAT.saisinTorusA);
   torusA.rotation.x = 0.55;
   g.add(torusA);
 
-  const torusB = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.042, 10, 28), new THREE.MeshStandardMaterial({ color: 0x67e8f9, emissive: 0x06b6d4, emissiveIntensity: 0.4 }));
+  const torusB = new THREE.Mesh(GEO.saisinTorus, MAT.saisinTorusB);
   torusB.rotation.y = 0.65;
   g.add(torusB);
 
-  // Ground prayer ring
-  const ringGeo = new THREE.RingGeometry(0.50, 0.68, 30);
-  const ringMat = new THREE.MeshBasicMaterial({ color: 0x67e8f9, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
-  const groundRing = new THREE.Mesh(ringGeo, ringMat);
+  // Ground prayer ring (reusing shared geo & mat)
+  const groundRing = new THREE.Mesh(GEO.saisinRing, MAT.saisinRing);
   groundRing.rotation.x = -Math.PI / 2; groundRing.position.y = -0.42;
   g.add(groundRing);
 
@@ -1147,10 +1187,8 @@ function spawnFantaItem(lane, z) {
   bottleB.position.y = 0.08;
   g.add(bottleB);
 
-  // Ground crimson pulse ring
-  const ringGeo = new THREE.RingGeometry(0.42, 0.65, 28);
-  const ringMat = new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
-  const groundRing = new THREE.Mesh(ringGeo, ringMat);
+  // Ground crimson pulse ring (reusing shared geo & mat)
+  const groundRing = new THREE.Mesh(GEO.fantaRing, MAT.fantaRing);
   groundRing.rotation.x = -Math.PI / 2;
   groundRing.position.y = -0.55;
   g.add(groundRing);
@@ -1217,7 +1255,7 @@ function ramObstacleWithFanta(o) {
     ui.flash.style.opacity = 0;
     ui.flash.style.backgroundColor = '';
   });
-  scene.remove(o.mesh);
+  safeRemove(o.mesh);
 }
 
 function activateSaiSinShield() {
@@ -1258,7 +1296,7 @@ function consumeSaiSinShield(o) {
   sfx.saiSinBreak();
   invuln = 1.8;
   o.hit = true;
-  scene.remove(o.mesh);
+  safeRemove(o.mesh);
   // Blessed holy burst flash (No stumble, no speed loss, no ghost gap loss!)
   ui.flash.style.transition = 'none';
   ui.flash.style.backgroundColor = 'rgba(103, 232, 249, 0.55)';
@@ -1281,9 +1319,8 @@ function spawnKrahangItem(lane, z) {
   tR.position.set(0.35, 0, 0); tR.rotation.set(0.15, -0.15, -0.30);
   g.add(tL); g.add(tR);
 
-  const ringGeo = new THREE.RingGeometry(0.52, 0.70, 30);
-  const ringMat = new THREE.MeshBasicMaterial({ color: 0xffd23a, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
-  const ring = new THREE.Mesh(ringGeo, ringMat);
+  // Ground gold pulse ring (reusing shared geo & mat)
+  const ring = new THREE.Mesh(GEO.krahangRing, MAT.krahangRing);
   ring.rotation.x = -Math.PI / 2; ring.position.y = -0.42;
   g.add(ring);
 
@@ -1325,7 +1362,7 @@ function activateKrahangFlight() {
   // Clear any existing sky offerings
   for (let i = offerings.length - 1; i >= 0; i--) {
     if (offerings[i].mesh.position.y > 3.0) {
-      scene.remove(offerings[i].mesh);
+      safeRemove(offerings[i].mesh);
       offerings.splice(i, 1);
     }
   }
@@ -1493,7 +1530,7 @@ function showBiomeToast(b) {
 }
 
 function clearFork() {
-  if (fork.group) { scene.remove(fork.group); fork.group = null; }
+  if (fork.group) { safeRemove(fork.group); fork.group = null; }
   fork.active = false;
   fork.state = 'idle';
   fork.z = 0;
@@ -1650,7 +1687,7 @@ function finishForkTurn() {
   currentBiome.roadTex.offset.y = -((Math.abs(refX) - LANE_W * 1.5) / CELL);
 
   // Clear old straight-road decor from previous biome
-  decor.forEach((m) => scene.remove(m));
+  decor.forEach((m) => safeRemove(m));
   decor.length = 0;
 
   // Rebase props on chosen branch into -Z straight world
@@ -1682,7 +1719,7 @@ function finishForkTurn() {
     offerings.push({ mesh: bo.mesh, lane: 1, got: false });
   }
 
-  scene.remove(g);
+  safeRemove(g);
   fork.group = null;
   fork.active = false;
   fork.state = 'idle';
@@ -1703,8 +1740,8 @@ function finishForkTurn() {
 
 function clearWorld() {
   clearFork();
-  [obstacles, offerings, collectibles].forEach((arr) => { arr.forEach((o) => scene.remove(o.mesh)); arr.length = 0; });
-  decor.forEach((m) => scene.remove(m)); decor.length = 0;
+  [obstacles, offerings, collectibles].forEach((arr) => { arr.forEach((o) => safeRemove(o.mesh)); arr.length = 0; });
+  decor.forEach((m) => safeRemove(m)); decor.length = 0;
 }
 function seedDecor() { for (let z = 8; z > SPAWN_Z; z -= 9) spawnDecor(z); }
 
@@ -1925,20 +1962,33 @@ async function sbFetch(path, opts = {}) {
   if (cfg.key.startsWith('eyJ')) {
     headers.Authorization = `Bearer ${cfg.key}`;
   }
-  const res = await fetch(`${cfg.url}${path}`, {
-    ...opts,
-    headers,
-  });
-  const txt = await res.text();
-  let data = null;
-  if (txt) {
-    try { data = JSON.parse(txt); } catch (_) { data = txt; }
+  const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  const timeoutMs = opts.timeout || 6500;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    const res = await fetch(`${cfg.url}${path}`, {
+      ...opts,
+      headers,
+      signal: controller ? controller.signal : undefined,
+    });
+    const txt = await res.text();
+    let data = null;
+    if (txt) {
+      try { data = JSON.parse(txt); } catch (_) { data = txt; }
+    }
+    if (!res.ok) {
+      const msg = (data && data.message) ? data.message : `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+    return data;
+  } catch (err) {
+    if (err && err.name === 'AbortError') {
+      throw new Error('การเชื่อมต่อเครือข่ายใช้เวลานานเกินไป');
+    }
+    throw err;
+  } finally {
+    if (timer) clearTimeout(timer);
   }
-  if (!res.ok) {
-    const msg = (data && data.message) ? data.message : `HTTP ${res.status}`;
-    throw new Error(msg);
-  }
-  return data;
 }
 
 function renderLeaderboardRows(rows, myRankData) {
@@ -1992,8 +2042,9 @@ function renderLeaderboardRows(rows, myRankData) {
   }
 }
 
+let isLbRefreshing = false;
 async function refreshLeaderboard() {
-  if (!ui.lbStatus || !ui.lbList) return;
+  if (!ui.lbStatus || !ui.lbList || isLbRefreshing) return;
   const cfg = getLbConfig();
   const activeNick = getActiveNickname();
   if (!cfg.ready) {
@@ -2007,6 +2058,7 @@ async function refreshLeaderboard() {
     return;
   }
 
+  isLbRefreshing = true;
   ui.lbStatus.textContent = '⏳ กำลังโหลดอันดับ...';
   try {
     const [topRows, myRank] = await Promise.all([
@@ -2021,6 +2073,8 @@ async function refreshLeaderboard() {
     renderLeaderboardRows(Array.isArray(topRows) ? topRows : [], myRank);
   } catch (err) {
     ui.lbStatus.textContent = `❌ โหลดอันดับไม่สำเร็จ (${err.message || 'เครือข่ายขัดข้อง'})`;
+  } finally {
+    isLbRefreshing = false;
   }
 }
 
@@ -2090,6 +2144,7 @@ function showDeathButtons() {
   ui.over.classList.add('ready');
 }
 function die() {
+  if (state === 'dead') return;
   paused = false;
   ui.pauseOverlay.style.display = 'none';
   if (ui.forkBanner) ui.forkBanner.style.display = 'none';
@@ -2206,22 +2261,28 @@ function swipeEnd(x, y) {
   else slide();
 }
 window.addEventListener('touchmove', (e) => {
-  if (state === 'play') e.preventDefault();
+  const target = e.target;
+  if (target && target.closest && target.closest('#lbList')) return;
+  if (e.cancelable && state === 'play') e.preventDefault();
   if (e.changedTouches && e.changedTouches[0]) {
     const t = e.changedTouches[0];
     swipeMove(t.clientX, t.clientY);
   }
 }, { passive: false });
 canvas.addEventListener('touchstart', (e) => {
-  if (state === 'play') e.preventDefault();
+  if (state === 'play' && e.cancelable) e.preventDefault();
   const t = e.changedTouches[0];
   swipeStart(t.clientX, t.clientY);
 }, { passive: false });
 canvas.addEventListener('touchend', (e) => {
-  if (state === 'play') e.preventDefault();
+  if (state === 'play' && e.cancelable) e.preventDefault();
   const t = e.changedTouches[0];
   swipeEnd(t.clientX, t.clientY);
 }, { passive: false });
+canvas.addEventListener('touchcancel', () => { touch = null; }, { passive: true });
+['touchstart', 'touchend', 'mousedown', 'keydown'].forEach((ev) => {
+  window.addEventListener(ev, () => { initAudio(); }, { once: true, passive: true });
+});
 canvas.addEventListener('mousedown', (e) => swipeStart(e.clientX, e.clientY));
 window.addEventListener('mouseup', (e) => swipeEnd(e.clientX, e.clientY));
 $('startBtn').addEventListener('click', (e) => { e.stopPropagation(); tryStartFromMenu(); });
@@ -2372,7 +2433,7 @@ function update(dt) {
         // Clear any ground obstacles ahead for 75m to guarantee a wide open landing strip
         for (let i = obstacles.length - 1; i >= 0; i--) {
           if (obstacles[i].mesh.position.z > -75) {
-            scene.remove(obstacles[i].mesh);
+            safeRemove(obstacles[i].mesh);
             obstacles.splice(i, 1);
           }
         }
@@ -2557,9 +2618,9 @@ function update(dt) {
         const c = collectibles[i]; c.mesh.position.z += dz;
         if (c.update) c.update(dt, clock);
         const cz = c.mesh.position.z;
-        if (cz > 12) { scene.remove(c.mesh); collectibles.splice(i, 1); continue; }
+        if (cz > 12) { safeRemove(c.mesh); collectibles.splice(i, 1); continue; }
         if (!c.got && c.lane === lane && Math.abs(cz) < 1.15 && py < 2.2) {
-          c.got = true; scene.remove(c.mesh); collectibles.splice(i, 1);
+          c.got = true; safeRemove(c.mesh); collectibles.splice(i, 1);
           if (c.type === 'fanta') {
             activateFantaBoost();
           } else if (c.type === 'saiSin') {
@@ -2575,7 +2636,7 @@ function update(dt) {
         const o = obstacles[i]; o.mesh.position.z += dz;
         if (o.update) o.update(dt, clock);
         const oz = o.mesh.position.z;
-        if (oz > 12) { scene.remove(o.mesh); obstacles.splice(i, 1); continue; }
+        if (oz > 12) { safeRemove(o.mesh); obstacles.splice(i, 1); continue; }
         if (!o.hit && o.lane === lane && Math.abs(oz) < o.depth / 2 + 0.35 && invuln <= 0) {
           let hit = false;
           if (o.type === 'low') hit = py < 0.85;
@@ -2617,7 +2678,7 @@ function update(dt) {
       for (let i = offerings.length - 1; i >= 0; i--) {
         const o = offerings[i]; o.mesh.position.z += dz; o.mesh.rotation.y += dt * 3;
         const oz = o.mesh.position.z;
-        if (oz > 12) { scene.remove(o.mesh); offerings.splice(i, 1); continue; }
+        if (oz > 12) { safeRemove(o.mesh); offerings.splice(i, 1); continue; }
         const isSky = o.mesh.position.y > 3.0;
         if (isSky && o.lane === lane && Math.abs(oz) < 4.2) {
           o.mesh.position.y += (py - o.mesh.position.y) * Math.min(1, dt * 8.0);
@@ -2625,14 +2686,14 @@ function update(dt) {
         const yClose = isSky ? Math.abs(py - o.mesh.position.y) < 2.5 : (py < 2.2 && !(slideT > 0 && o.mesh.position.y > 1.2));
         const catchRadius = isSky ? 1.5 : 1.05;
         if (!o.got && o.lane === lane && Math.abs(oz) < catchRadius && yClose) {
-          o.got = true; scene.remove(o.mesh); offerings.splice(i, 1);
+          o.got = true; safeRemove(o.mesh); offerings.splice(i, 1);
           offerCount++; gap = Math.min(GHOST_MAX_GAP, gap + 0.65); sfx.coin();
         }
       }
       for (let i = decor.length - 1; i >= 0; i--) {
         decor[i].position.z += dz;
         if (decor[i].userData && decor[i].userData.update) decor[i].userData.update(dt, clock);
-        if (decor[i].position.z > 14) { scene.remove(decor[i]); decor.splice(i, 1); }
+        if (decor[i].position.z > 14) { safeRemove(decor[i]); decor.splice(i, 1); }
       }
     }
 
@@ -2822,10 +2883,23 @@ function resize() {
   }
   pipCam.aspect = pw / ph; pipCam.updateProjectionMatrix();
 }
-window.addEventListener('resize', resize); resize();
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 120));
+resize();
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (state === 'play' && !paused) {
+      togglePause(true);
+    }
+  } else {
+    last = performance.now();
+  }
+});
 
 let pipFrame = 0;
 function render() {
+  if (isContextLost) return;
   // show ghost in main camera during the menu shrine intro and on jumpscare; hide while running so its back doesn't block the track
   ghostRoot.visible = (state !== 'play');
   renderer.setViewport(0, 0, W, H); renderer.setScissor(0, 0, W, H);
@@ -2846,10 +2920,18 @@ function render() {
 
 let last = performance.now();
 function loop(now) {
-  const dt = paused ? 0 : Math.min(0.05, (now - last) / 1000); last = now;
-  if (!paused) update(dt);
-  render();
   requestAnimationFrame(loop);
+  const currentTime = typeof now === 'number' ? now : performance.now();
+  const rawDt = (currentTime - last) / 1000;
+  last = currentTime;
+  // Discard huge delta time after backgrounding or long frames to prevent sudden physics leaps
+  const dt = (paused || rawDt > 0.35) ? 0 : Math.min(0.05, Math.max(0.001, rawDt));
+  try {
+    if (!paused && dt > 0) update(dt);
+    render();
+  } catch (err) {
+    console.error('Frame glitch:', err);
+  }
 }
 reset();
 requestAnimationFrame(loop);
